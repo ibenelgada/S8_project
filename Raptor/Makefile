@@ -20,3 +20,6 @@ clean:
 
 clear: clean
 			  rm -f bin/*
+
+test:
+			$(CC) -o bin/test sources/test.cpp
