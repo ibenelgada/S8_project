@@ -3,10 +3,15 @@
 #include <list>
 #include <iterator>
 #include <tuple>
+#include <vector>
+#include <climits>
+#include <fstream>
 
-#define INF 4294967295   //2^32 - 1 (biggest unsigned int)
+#define INF UINT_MAX
 
 using namespace std;
+
+
 
 class position{
     double lat;
@@ -21,10 +26,25 @@ public:
     position pos;
     int nb_routes;
     int nb_transfers;
-    int* transfer_to;
-    int* transfer_time;
-    int* routes;
-    int* route_pos;
+    vector <int> transfer_to;
+    vector <int> transfer_time;
+    vector <int> routes;
+    vector <int> route_pos;
+
+    void set(int p_id, int p_nb_routes, int p_nb_transfers){
+      id = p_id;
+      nb_routes = p_nb_routes;
+      nb_transfers = p_nb_transfers;
+    }
+
+    void add_transfert(int to, unsigned int time){
+      transfer_to.push_back(to);
+      transfer_time.push_back(time);
+    }
+
+    void add_route(){
+
+    }
 };
 
 class Route{
@@ -34,8 +54,99 @@ public:
     int id;
     int nb_stops;
     int nb_trips;
-    int* stops;
-    int* trips;
+    vector <int> stops;
+    vector <int> trips;
+
+    void set(int p_id, int p_nb_stops, int p_nb_trips){
+      id = p_id;
+      nb_stops = p_nb_stops;
+      nb_trips = p_nb_trips;
+    }
+
+};
+
+class Network{
+public:
+  vector <Route> routes;
+  vector <Stop> stops;
+
+public:
+
+  Network (const string& froutes, const string& fpaths ){
+    ifstream sroutes, spaths;
+
+    sroutes.open(froutes.c_str());
+    spaths.open(fpaths.c_str());
+
+    init(sroutes, spaths);
+
+    sroutes.close();
+    spaths.close();
+  }
+
+  Network(istream& sroutes, istream& spaths){
+    init(sroutes, spaths);
+  }
+
+  void init(istream& sroutes, istream& spaths){
+    int nb_routes, total_nb_stops;
+
+    int s_id, nb_stop_routes, nb_transfers;
+
+    unsigned int transfer_to, transfer_time;
+
+    int r_id, nb_stops, nb_trips;
+
+    int stop, time;
+
+    sroutes >> nb_routes;
+    sroutes >> total_nb_stops;
+
+    routes.resize(nb_routes);
+    stops.resize(total_nb_stops);
+
+    for(int i=0; i<total_nb_stops; i++){
+      spaths >> s_id;
+      spaths >> nb_stop_routes;
+      spaths >> nb_transfers;
+
+      stops[i].set(s_id, nb_stop_routes, nb_transfers);
+
+      for(int j=0; j<nb_transfers; j++){
+        spaths >> transfer_to;
+        spaths >> transfer_time;
+
+        stops[i].add_transfert(transfer_to, transfer_time);
+      }
+
+    }
+
+    for(int i=0; i<nb_routes; i++){
+      sroutes >> r_id;
+      sroutes >> nb_stops;
+      sroutes >> nb_trips;
+
+      routes[i].set(r_id, nb_stops, nb_trips);
+
+      for(int j=0; j<nb_stops; j++){
+        sroutes >> stop;
+        routes[i].stops.push_back(stop);
+        stops[stop].routes.push_back(routes[i].id);
+        stops[stop].route_pos.push_back(j);
+      }
+
+      for(int j=0; j<nb_trips; j++){
+        for(int k=0; k<nb_stops; k++){
+          sroutes >> time;
+          routes[i].trips.push_back(time);
+        }
+      }
+
+    }
+
+
+
+  }
 
 };
 
@@ -52,7 +163,7 @@ void showlist(list <unsigned int> g)
 }
 
 
-int route_pos(Stop* stops, int s, int r){
+int route_pos(vector<Stop> stops, int s, int r){
     /*
     Gives the position of a stop s in a route r,
     used to check if one stop comes before another stop
@@ -65,7 +176,7 @@ int route_pos(Stop* stops, int s, int r){
     return -1;
 }
 
-int et(Route* routes, Stop* stops, int r, int pi, unsigned int t_pi){
+int et(vector<Route> routes, vector<Stop> stops, int r, int pi, unsigned int t_pi){
     /*
     Returns the earliest trip that can be taken from the stop pi in the route
     r at the departure time t_pi
@@ -83,68 +194,15 @@ int et(Route* routes, Stop* stops, int r, int pi, unsigned int t_pi){
 
 int main()
 {
-    FILE* routes_file = fopen("data/routes.txt", "r");
-    FILE* pathways_file = fopen("data/pathways.txt", "r");
 
-    int nb_routes;
-    int total_nb_stops;
 
-    fscanf(routes_file,"%d %d", &nb_routes, &total_nb_stops);
+    Network myNetwork("data/routes.txt", "data/pathways.txt");
 
-    Route routes[nb_routes];
-    Stop stops[total_nb_stops];
+    vector <Route> routes = myNetwork.routes;
+    vector <Stop> stops = myNetwork.stops;
 
-    int tmp;
-
-/* ----------------------------------------------------------------------------------------------------
-    Filling the arrays routes and stops with all needed information.
-*/
-
-    for(int i=0; i<total_nb_stops; i++){
-        fscanf(pathways_file, "%d %d %d", &stops[i].id, &stops[i].nb_routes, &stops[i].nb_transfers);
-
-        stops[i].routes = new int[stops[i].nb_routes];
-        stops[i].route_pos = new int[stops[i].nb_routes];
-
-        if(stops[i].nb_transfers > 0){
-            stops[i].transfer_to = new int[stops[i].nb_transfers];
-            stops[i].transfer_time = new int[stops[i].nb_transfers];
-        }
-
-        for(int j=0; j<stops[i].nb_routes; j++)
-            stops[i].routes[j] = -1;
-
-        for(int j=0; j<stops[i].nb_transfers; j++){
-            fscanf(pathways_file, "%d %d ", &stops[i].transfer_to[j], &stops[i].transfer_time[j]);
-        }
-    }
-
-    fclose(pathways_file);
-
-    int l;
-    for(int i=0; i< nb_routes; i++){
-        fscanf(routes_file, "%d %d %d", &routes[i].id, &routes[i].nb_stops, &routes[i].nb_trips);
-        routes[i].stops = new int[routes[i].nb_stops];
-        routes[i].trips = new int[routes[i].nb_trips * routes[i].nb_stops];
-
-        for(int j=0; j<routes[i].nb_stops; j++){
-            fscanf(routes_file, "%d ", &tmp);
-            routes[i].stops[j] = tmp;
-
-            for(l=0; stops[tmp].routes[l] != -1 ; l++);
-            stops[tmp].routes[l] = routes[i].id;
-            stops[tmp].route_pos[l] = j;
-        }
-
-        for(int j=0; j<routes[i].nb_trips; j++){
-            for(int k=0; k<routes[i].nb_stops; k++){
-                fscanf(routes_file, "%d ", &tmp);
-                routes[i].trips[k + j*routes[i].nb_stops] = tmp;
-            }
-        }
-    }
-    fclose(routes_file);
-
+    int nb_routes = routes.size();
+    int total_nb_stops = stops.size();
 /* ----------------------------------------------------------------------------------------------------
    Algorithm implementation : RAPTOR
 */
@@ -159,26 +217,19 @@ int main()
     list <unsigned int> t[total_nb_stops];  //array of multilabel lists
                                             //t[i]: list of earliest arrival times at stop i
 
-    unsigned int t_min[total_nb_stops];     //array for earliest known arrival times at each stop
+    vector <unsigned int> t_min(total_nb_stops, INF);     //array for earliest known arrival times at each stop
                                             //used for local pruning
 
-    bool marked[total_nb_stops];  //array for marking stops
+    vector<bool> marked(total_nb_stops,false);  //array for marking stops
 
-    int Q[nb_routes];                //array of routes where Q[r] = p means that
-                                    //route r should be processed starting with stop p
-                                    
-    for(int i=0; i<total_nb_stops; i++)
-      marked[i] = false;
-
-    for(int i=0; i<nb_routes; i++)
-      Q[i] = -1;
+    vector <int> Q(nb_routes,-1);                //array of routes where Q[r] = p means that
+                                            //route r should be processed starting with stop p
 
     int k = 0;                              //Round number
 
     /* INITIALIZING VARIABLES */
 
     for(int i=0; i<total_nb_stops; i++){    //initialize earliest arrival times with infinity
-        t_min[i] = INF;
         t[i].push_back(INF);
     }
 
