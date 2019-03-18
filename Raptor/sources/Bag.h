@@ -12,14 +12,36 @@
 
 #include "Label.h"
 
+class Bag;
+
+std::ostream& operator<<(std::ostream&, const Bag&);
+
 class Bag{
 
 public:
+  std::list <Label> bag;
 
-  vector <Label> bag;
 
 
+public:
+  typedef std::list<Label>::iterator iterator;
+
+  size_t size() const;
+  bool empty() const;
+
+
+  iterator insert (iterator position, const Label& label);
+  iterator erase (iterator position);
+  void remove (const Label& label);
+  void clear();
+
+  iterator begin();
+  iterator end();
+
+    friend std::ostream& operator<<(std::ostream&, const Bag&);
 
 };
+
+
 
 #endif
