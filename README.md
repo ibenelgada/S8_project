@@ -1,5 +1,5 @@
 # S8 project
-	Optimal paths computing algorithm
+Optimal paths computing algorithm
 
 ##### Compile program:
 
