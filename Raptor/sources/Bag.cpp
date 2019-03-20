@@ -1,6 +1,6 @@
 
 #include "Bag.h"
-#include "Label.h"
+
 
 
 size_t Bag::size() const{

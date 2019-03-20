@@ -1,7 +1,6 @@
 #ifndef LABEL_H
 #define LABEL_H
 
-#include "Journey.h"
 #include <iostream>
 #include <list>
 
@@ -20,10 +19,16 @@ public:
   unsigned int time;
   float price;
 
-  // array of  class type critirium ?
-  Journey journey;
+  // array of class type critirium ?
+
+  int hop_stop;
+  int route;
+  int trip;
+  std::list<Label>::iterator prev_label;
 
 public:
+
+  Label();
   friend bool operator<(const Label&, const Label&);
   friend bool operator==(const Label&, const Label&);
   friend bool operator<=(const Label&, const Label&);

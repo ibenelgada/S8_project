@@ -13,7 +13,6 @@
 #include "Network.h"
 #include "Position.h"
 #include "Label.h"
-#include "Journey.h"
 #include "Bag.h"
 #include <cmath>
 
@@ -135,7 +134,7 @@ int main(){
     int k = 0;                              //Round number
 
     /* Some temporary variables */
-    int h, p, r, pp, pi, p_pos, pi_pos;
+    int p, r, pp, pi, p_pos, pi_pos;
     string tmp_s;
     bool marked_any;
     Bag Br;
@@ -166,6 +165,8 @@ int main(){
         cout << endl << "-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------" << endl;
         cout << "              ROUND " << k << endl;
         cout << "-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------" << endl << endl;
+
+        marked_any = false;
 
         //Clear Q
         for(unsigned int i=0; i< Q.size(); ++i){
@@ -232,20 +233,21 @@ int main(){
 
                   //--------------------------------------------------------
                 //  cin >> s;
+                  Label& l_ref = *it;
 
-                  l_tmp = *it;
-                  l_tmp.time = routes[r].trips[l_tmp.journey.trip * routes[r].nb_stops + pi_pos];
-                  l_tmp.price = l_tmp.price + getCost(routes, stops, r, l_tmp.journey.trip, l_tmp.journey.prev_stop, pi);
+                  l_ref.time = routes[r].trips[l_ref.trip * routes[r].nb_stops + pi_pos];
+                  l_ref.price = l_ref.prev_label->price + getCost(routes, stops, r, l_ref.trip, l_ref.hop_stop, pi);
 
-                  cout << l_tmp << endl;
+                  cout << l_ref << endl;
 
-                  if( compare(l_tmp, bags_star[pt_id]) && add_nondom(l_tmp, bags_star[pi]) ){
+                  if( compare(l_ref, bags_star[pt_id]) && add_nondom(l_ref, bags_star[pi]) ){
                     if(bags[pi].find(k) == bags[pi].end()){
                       cout << "Creating Bag B of stop " << pi << " and round " << k << endl;
                       bags[pi][k] = Bag();
                     }
-                      add_nondom(l_tmp, bags[pi][k]);
+                      add_nondom(l_ref, bags[pi][k]);
                       marked[pi] = true;
+                      marked_any =true;
                       cout << "adding Label to bag and marking " << pi << endl;
 
                   }else{
@@ -259,23 +261,22 @@ int main(){
 
                 cout << "-------------------------traversing B*" << endl;
 
-                Br.bag.clear();
-                
+
                 for(it=bags_star[pi].bag.begin(); it!=bags_star[pi].bag.end(); ++it){
                   cout << *it << endl;
 
                   trips.clear();
-                  get_trips(routes, stops, r, pi, (*it).time, trips);
+                  get_trips(routes, stops, r, pi, it->time, trips);
 
                   cout << "trips is of size " << trips.size() << endl;
 
                   for(unsigned int i=0; i<trips.size(); ++i){
                     cout << "trip " << trips[i] << ":" << endl;
                     l_tmp = *it;
-                    l_tmp.journey.prev_journey = &((*it).journey);
-                    l_tmp.journey.trip = trips[i];
-                    l_tmp.journey.route = r;
-                    l_tmp.journey.prev_stop = pi;
+                    l_tmp.prev_label = it;
+                    l_tmp.trip = trips[i];
+                    l_tmp.route = r;
+                    l_tmp.hop_stop = pi;
                     if(add_nondom(l_tmp, Br))
                       cout << "Label added to Br" << endl;
                     else
@@ -295,14 +296,8 @@ int main(){
             } //route loop
 
 
-
         //If no stops are marked, end
-        for(h=0; h<total_nb_stops; ++h){
-            if(marked[h])
-                break;
-        }
-
-        if(h >= total_nb_stops)
+        if(!marked_any)
             break;
 
     } //rounds
@@ -312,19 +307,7 @@ int main(){
     cout << "------------------------------------" << endl << endl;
 
 
-    cout << bags[pt_id][3].size() << endl;
-    cout << bags_star[pt_id].size() << endl;
+    cout << bags_star[pt_id] << endl;
 
-    cout << *(bags[pt_id][3].bag.begin()) << endl;
-
-
-    cout << bags[pt_id][3] << endl;
-
-    // for(int i=0; i<total_nb_stops; ++i){
-    //     cout << "stop " << i << '\t';
-    //     showlist(t[i]);
-    // }
-    //
-    // cout << "arrived at stop " << pt_id << " at " << t_min[pt_id] << endl;
     return 0;
 }
