@@ -1,11 +1,11 @@
 # S8 project
-Optimal paths computing algorithm
+	Optimal paths computing algorithm
 
-Compile program:
+##### Compile program:
 
 		make
   
-Run program:
+##### Run program:
 
 		bin/raptor
 
