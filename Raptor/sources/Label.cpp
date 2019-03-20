@@ -1,7 +1,17 @@
 
 #include "Label.h"
 
-Label::Label():hop_stop(-1),route(-1),trip(-1),prev_label(nullptr){}
+Label::Label():time(0),price(0.0),hop_stop(-1),route(-1),trip(-1),prev_label(nullptr){}
+Label::Label(int time, float price):time(time),price(price),hop_stop(-1),route(-1),trip(-1),prev_label(nullptr){}
+
+void Label::fill(std::list<Label>::const_iterator c_it, int r, int t, int s){
+  *this = *c_it;
+  prev_label = c_it;
+  trip = t;
+  route = r;
+  hop_stop = s;
+}
+
 
 bool operator<(const Label& lb1, const Label& lb2){
   return (lb1.time <= lb2.time) && (lb1.price <= lb2.price) && ((lb1.time != lb2.time) || (lb1.price != lb2.price));

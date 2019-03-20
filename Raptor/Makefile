@@ -6,8 +6,8 @@ EXEC=raptor
 
 all: mkdir $(EXEC)
 
-raptor: main.o Stop.o Route.o Network.o Position.o Bag.o Label.o
-				$(CC) -o bin/raptor obj/Bag.o obj/Label.o obj/Route.o obj/Network.o obj/Position.o obj/Stop.o obj/main.o $(LDFLAGS)
+raptor: main.o Stop.o Route.o Network.o Position.o Bag.o Label.o Bags.o
+				$(CC) -o bin/raptor obj/Bag.o obj/Bags.o obj/Label.o obj/Route.o obj/Network.o obj/Position.o obj/Stop.o obj/main.o $(LDFLAGS)
 
 test: test.o Bag.o Label.o
 				$(CC) -o bin/test obj/test.o obj/Bag.o obj/Label.o $(LDFLAGS)

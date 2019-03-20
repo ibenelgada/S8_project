@@ -9,6 +9,7 @@
 #include <vector>
 #include <climits>
 #include <fstream>
+#include <cmath>
 
 #include "Route.h"
 #include "Stop.h"
@@ -31,6 +32,15 @@ public:
 
   int stop_nb_routes(int s_id);
 
+  std::vector<int>& stop_routes(int s_id);
+
+  int route_pos(int r, int p) const;
+
+  float getCost(int r, int trip, int p1, int p2) const;
+
+  int et(int r, int pi, unsigned int t) const;
+
+  void get_trips(int r, int pi, unsigned int t_pi, std::vector<int> &trips) const;
 
 private:
 

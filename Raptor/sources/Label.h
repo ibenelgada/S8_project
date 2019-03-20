@@ -24,11 +24,15 @@ public:
   int hop_stop;
   int route;
   int trip;
-  std::list<Label>::iterator prev_label;
+  std::list<Label>::const_iterator prev_label;
 
 public:
 
   Label();
+  Label(int time, float price);
+
+  void fill(std::list<Label>::const_iterator c_it, int r, int t, int s);
+
   friend bool operator<(const Label&, const Label&);
   friend bool operator==(const Label&, const Label&);
   friend bool operator<=(const Label&, const Label&);

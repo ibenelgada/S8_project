@@ -1,7 +1,4 @@
-
 #include "Bag.h"
-
-
 
 size_t Bag::size() const{
   return bag.size();
@@ -9,6 +6,105 @@ size_t Bag::size() const{
 
 bool Bag::empty() const{
   return bag.empty();
+}
+
+
+void Bag::pop_back(){
+  bag.pop_back();
+}
+
+void Bag::pop_front(){
+  bag.pop_front();
+}
+
+
+void Bag::clear(){
+  bag.clear();
+}
+
+Bag::iterator Bag::begin(){
+  return bag.begin();
+}
+
+Bag::iterator Bag::end(){
+  return bag.end();
+}
+
+Bag::const_iterator Bag::cbegin() const{
+  return bag.cbegin();
+}
+
+Bag::const_iterator Bag::cend() const{
+  return bag.cend();
+}
+
+bool operator<(const Label& l, const Bag& b){
+  Bag::const_iterator it;
+  for(it = b.cbegin(); it != b.cend(); ++it){
+    if( *it <= l )
+      return false;
+  }
+  return true;
+}
+
+bool operator>(const Label& l, const Bag& b){
+  Bag::const_iterator it;
+  for(it = b.cbegin(); it != b.cend(); ++it){
+    if( *it >= l )
+      return false;
+  }
+  return true;
+}
+
+bool operator<=(const Label& l, const Bag& b){
+  Bag::const_iterator it;
+  for(it = b.cbegin(); it != b.cend(); ++it){
+    if( *it < l )
+      return false;
+  }
+  return true;
+}
+
+bool operator>=(const Label& l, const Bag& b){
+  Bag::const_iterator it;
+  for(it = b.cbegin(); it != b.cend(); ++it){
+    if( *it > l )
+      return false;
+  }
+  return true;
+}
+
+
+bool operator<(const Bag& b, const Label& l){
+  return l > b;
+}
+
+bool operator>(const Bag& b, const Label& l){
+  return l < b;
+}
+
+bool operator<=(const Bag& b, const Label& l){
+  return l >= b;
+}
+
+bool operator>=(const Bag& b, const Label& l){
+  return l <= b;
+}
+
+
+bool Bag::push_nondom(const Label& l){
+  Bag::iterator it;
+  it = bag.begin();
+  while(it != bag.end()){
+    if( *it < l || *it == l )
+      return false;
+    if( *it > l)
+      it = bag.erase(it);
+    else
+      ++it;
+  }
+  bag.push_back(l);
+  return true;
 }
 
 
