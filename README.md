@@ -24,6 +24,9 @@ The algorithm developed should be able to find a path while combining constraine
 We should note that since we consider more than one criterion to find paths, there will be a number of  “best paths” that cannot be compared to each other and can all be considered optimal paths, these are called the Pareto-set. The objective of the algorithm is to find all Pareto-optimal paths in multi-modal transportation
 
 ## Description
+
 The algorithm developed is based on two existing algorithms:
-RAPTOR (Round-Based Public Transit Routing algorithm), for constrained transport. 
-NAMOA* (Multi-objective A*) for unconstrained transport.
+
+- RAPTOR (Round-Based Public Transit Routing algorithm), for constrained transport.
+
+- NAMOA* (Multi-objective A*) for unconstrained transport.
