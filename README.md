@@ -1,13 +1,13 @@
 # S8 project
 Optimal paths computing algorithm
 
-##### Compile program:
+##### Raptor:
 
-		make
+		cd Raptor; make; bin/raptor
   
-##### Run program:
+##### Namoa:
 
-		bin/raptor
+		cd Namoa; make; bin/namoa
 
 ## Problem statement
 
