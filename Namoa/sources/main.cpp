@@ -29,6 +29,14 @@ double getHeightDiff(map<int,Position> nodes, int nd1, int nd2){
   return nodes[nd2].alt - nodes[nd1].alt;
 }
 
+
+Cost getCost(map<int,Position> nodes, int nd1, int nd2){
+  Cost g;
+  g.distance = getDistance(nodes, nd1, nd2);
+  g.height_diff = getHeightDiff(nodes, nd1, nd2);
+  return g;
+}
+
 bool isNondom(list<Label*>& open, list<Label*>::iterator lb_it){
     Label* lbp = *lb_it;
     Label lb = *lbp;
@@ -73,6 +81,18 @@ bool add_nondom(list<Label*>& labels, Label* lbp){
   }
   labels.push_back(lbp);
   return true;
+}
+
+bool produce_cycle(int m, Label* current_label){
+
+  Label* label_ptr = current_label;
+  while(label_ptr != nullptr){
+    label_ptr = label_ptr->prev_label;
+    if(label_ptr->node == m)
+      return true;
+  }
+
+  return false;
 }
 
 int main(){
@@ -122,6 +142,7 @@ int main(){
   list<Label*> open;
 
   Label* label_tmp;
+  int m;
 
   label_tmp = new Label();
   label_tmp->g = Cost(0.0,0.0);
@@ -144,14 +165,34 @@ int main(){
     open.erase(node_it);
     closed.push_back(current_label);
 
+    //processing path (node - Label)
     if(current_label->node == end_node){
-      add_nondom(best_labels, current_label);
-      
+      //if destination reached
+      if(add_nondom(best_labels, current_label)){
+        //add_nondom label to best_labels, and filter list open
+        //filter(open, current_label);
+        continue;
+      }
+    }
+
+    /* Path EXPANSION */
+
+    //neighbours
+    vector<int>& neighbours = graph[current_label->node];
+
+    for(int i = 0; i<neighbours.size(); ++i){
+      m = neighbours[i];
+
+      if(produce_cycle(m, current_label))
+        continue;
+
+      //calculate cost to m
+      Cost cost_m;
+      cost_m = current_label->g  + getCost(nodes, current_label->node, m);
+
     }
 
 
-
-    //process node
   }
 
   return 0;
