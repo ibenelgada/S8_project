@@ -1,0 +1,18 @@
+{
+    "criterias": {
+        "price": true,
+        "connections": false,
+        "co2": false,
+        "effort": true
+    },
+    "start": {
+        "latitude": 44.8011,
+        "longitude": -0.6018
+    },
+    "dest": {
+        "latitude": 44.8143,
+        "longitude": -0.5741
+    },
+    "startTime": "12:18",
+    "mode": "walk"
+}

@@ -6,8 +6,8 @@ EXEC=namoa
 
 all: mkdir $(EXEC)
 
-namoa: main.o Position.o Label.o Cost.o
-				$(CC) -o bin/namoa obj/Label.o obj/Position.o obj/Cost.o obj/main.o $(LDFLAGS)
+namoa: main.o Position.o Label.o Cost.o Arc.o Node.o Graph.o Json.o
+				$(CC) -o bin/namoa obj/Json.o obj/Label.o obj/Arc.o obj/Node.o obj/Graph.o obj/Position.o obj/Cost.o obj/main.o $(LDFLAGS)
 
 %.o: sources/%.cpp
 				$(CC) -o obj/$@ -c $< $(CFLAGS)

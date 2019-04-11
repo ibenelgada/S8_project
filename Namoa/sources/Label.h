@@ -21,13 +21,14 @@ public:
 
   Cost h;
 
-  int node;
+  long long node;
 
   Label* prev_label;
 
 public:
 
-  //Label();
+  Label();
+  Label(long long);
   //Label(double distance, double heigh_diff);
 
 

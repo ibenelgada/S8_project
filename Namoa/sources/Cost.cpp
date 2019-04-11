@@ -44,6 +44,6 @@ Cost operator+(const Cost& cost1, const Cost& cost2){
 }
 
 std::ostream& operator<<(std::ostream& os, const Cost& cost){
-    os << "not defined" << std::endl;
+    os << "(" << cost.distance << ", " << cost.height_diff << ")";
     return os;
 }

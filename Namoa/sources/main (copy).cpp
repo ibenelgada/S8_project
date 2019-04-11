@@ -8,8 +8,6 @@
 #include <climits>
 #include <fstream>
 #include <cmath>
-#include <sstream>
-
 
 #include "Position.h"
 #include "Label.h"
@@ -17,8 +15,6 @@
 #include "Arc.h"
 #include "Node.h"
 #include "Graph.h"
-
-#include "Json.h"
 
 //#define DEBUG
 #define SIZE
@@ -167,9 +163,9 @@ double getHeightDiff(map<long long,Position> &nodes, long long nd1, long long nd
 
 Cost getCost(map<long long,Position> &nodes, long long nd1, long long nd2){
   Cost g;
-  g.distance = getDistance(nodes, nd1, nd2);
-  g.height_diff = getHeightDiff(nodes, nd1, nd2);
-//  g.distance = 1;
+//  g.distance = getDistance(nodes, nd1, nd2);
+//  g.height_diff = getHeightDiff(nodes, nd1, nd2);
+  g.distance = 1;
 
   return g;
 }
@@ -371,76 +367,6 @@ void truncate(map<long long, vector<long long>> &graph, map<long long, Position>
   }
 }
 
-vector<long long> getNodes(Label* label){
-  vector<long long> v;
-  Label* label_ptr = label;
-  while(label_ptr != nullptr){
-    v.push_back(label_ptr->node);
-    label_ptr = label_ptr->prev_label;
-  }
-  return v;
-}
-
-string to_json(list<Label*>& labels){
-
-  Object obj;
-  Array itineraries;
-  Object* itinerary;
-  Object* criteria;
-  Array* sections;
-  Object* section;
-  Array* nodes;
-  vector<long long> nodes_vect;
-  obj.add("nb_itineraries", new Integer(labels.size()));
-  list<Label*>::iterator it;
-  Label* label;
-  for(it = labels.begin(); it != labels.end(); ++it){
-    itinerary = new Object();
-    label = *it;
-    criteria = new Object();
-
-    criteria->add("distance", new Real(label->g.distance));
-    criteria->add("time", new Integer(0));
-    criteria->add("price", new Real(0));
-    criteria->add("height", new Integer(0));
-    criteria->add("connections", new Integer(0));
-    criteria->add("co2" , new Integer(0));
-    criteria->add("effort", new Integer(0));
-
-    itinerary->add("criteria", criteria);
-
-    sections = new Array();
-
-    for(int i=0; i<1; ++i){
-      section = new Object();
-      nodes = new Array();
-
-      nodes_vect = getNodes(label);
-      for(unsigned int i=0; i < nodes_vect.size(); ++i){
-        nodes->arr.push_back(new Integer(nodes_vect[i]));
-      }
-
-      section->add("nodes", nodes);
-      section->add("start", new String("17:30"));
-      section->add("end", new String("17:30"));
-      section->add("idTransport", new Integer(-1));
-      section->add("public", new Boolean(false));
-      section->add("type", new String("walking"));
-
-      sections->arr.push_back(section);
-    }
-
-    itinerary->add("sections", sections);
-
-    itineraries.arr.push_back(itinerary);
-  }
-
-  obj.add("itineraries", &itineraries);
-
-  return obj.toString();
-}
-
-
 int main(){
 
   Graph myGraph;
@@ -448,16 +374,14 @@ int main(){
   map<long long,vector<long long>> graph;
   map<long long,Position> nodes;
 
+  long long end_node = 25186361913;
   long long start_node = 2292387593;
-  long long end_node = 2518636193;
-//orange 272268867
-//yellow 2292387593
-//red 2518636193
+
   //initGraph(graph, nodes,"data/graph.txt", "data/nodes.txt", "data/graph.dot");
   initGraph(graph, nodes,"../Data/data/talence_graph.txt", "../Data/data/talence_nodes.txt", "data/graph.dot");
 
-  truncate(graph, nodes, start_node, end_node, 7.3e-5);
-  dotGraph(graph, nodes, "data/graph_truncated.dot");
+
+  //truncate(graph, nodes, start_node, end_node, 1.3e-6);
 
   list<Label*> closed;
   list<Label*> open;
@@ -476,10 +400,21 @@ int main(){
 
   Position tmp;
   while(!open.empty()){
+
+#ifdef SIZE
+    cout << closed.size() << " " << open.size() << endl;
+#endif
     //choosing a node from open
     node_it = getNondomNode(open);
 
-    cout << closed.size() << " " << open.size() << endl;
+#ifdef DEBUG
+    cout << TAB << TAB << TAB << TAB << TAB << endl;
+    cout << " - open is:" << endl;
+    print_list(open);
+    cout << " - closed is:" << endl;
+    print_list(closed);
+    cout << " - treating "<< **node_it << endl;
+#endif
     //moving node from open to closed
     current_label = *node_it;
     open.erase(node_it);
@@ -489,10 +424,23 @@ int main(){
     if(current_label->node == end_node){
       //if destination reached
 
+#ifdef DEBUG
+      cout << " - destination reached." << endl;
+      cout << "best labels is:" << endl;
+      print_list(best_labels);
+#endif
+
       if(add_nondom(best_labels, current_label)){
 
         //add_nondom label to best_labels, and filter list open
         filter(open, current_label);
+
+#ifdef DEBUG
+        cout << "label added, now best labels is:" << endl;
+        print_list(best_labels);
+        cout << "open after filtring:" << endl;
+        print_list(open);
+#endif
 
         continue;
       }
@@ -502,11 +450,19 @@ int main(){
 
     //neighbours
     vector<long long>& neighbours = graph[current_label->node];
-
+#ifdef DEBUG
+    cout << " - path expansion" << endl;
+#endif
     for(unsigned long long i = 0; i<neighbours.size(); ++i){
       m = neighbours[i];
 
+#ifdef DEBUG
+      cout << "      -node " << m << endl;
+#endif
       if(produce_cycle(m, current_label)){
+#ifdef DEBUG
+        cout << "        produces cycle, passing" << endl;
+#endif
         continue;
       }
 
@@ -514,8 +470,7 @@ int main(){
       Cost cost_m;
       cost_m = current_label->g  + getCost(nodes, current_label->node, m);
       Cost heuristic_m(0,0);
-
-      heuristic_m = getCost(nodes,m,end_node);
+//      heuristic_m = getCost(nodes,m,end_node);
 
       Label* new_label = new Label();
       new_label->node = m;
@@ -524,23 +479,33 @@ int main(){
       new_label->prev_label = current_label;
 
       Cost eval_m = cost_m + heuristic_m;   //F(m)
-
+#ifdef DEBUG
+      cout << "        created " << *new_label << endl;
+#endif
       //if m is a new node
       if(!inList(m, open) && !inList(m,closed)){
 
         if(dominated(eval_m, best_labels)){
+#ifdef DEBUG
+          cout << "        its dominated by destination" << endl;
+#endif
           continue;
         }
 
 
         open.push_back(new_label);
+#ifdef DEBUG
+        cout << "        its a new label, added" << endl;
+#endif
 
       }else{
 
         //if g_m is non-dominated by any cost vectors in G_op(m) ∪ G_cl(m)
         //(a path to m with new long longeresting cost has been found)
         if(!isNondom(open, new_label) && !isNondom(closed, new_label)){
-
+#ifdef DEBUG
+          cout << "        its dominated by better path" << endl;
+#endif
           continue;
         }
 
@@ -548,12 +513,16 @@ int main(){
         rmDominated(closed, new_label);
 
         if(dominated(eval_m, best_labels)){
-
+#ifdef DEBUG
+          cout << "        its dominated by destination" << endl;
+#endif
           continue;
         }
 
         open.push_back(new_label);
-
+#ifdef DEBUG
+        cout << "        added to open." << endl;
+#endif
       } //if
 
     } //for
@@ -565,15 +534,12 @@ int main(){
   Label* label_ptr = *it;
 
   while(label_ptr != nullptr){
-    cout << label_ptr->node << " -- " ;
+    cout << label_ptr->node << " " ;
     label_ptr = label_ptr -> prev_label;
   }
   cout << endl;
 
   cout << best_labels.size() << endl;
-
-
-  cout << to_json(best_labels) << endl;
 
   return 0;
 }
