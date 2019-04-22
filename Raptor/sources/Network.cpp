@@ -79,6 +79,7 @@ void Network::get_trips(int r, int pi, unsigned int t_pi, std::vector<int> &trip
 
   for(int i=t; i< this->routes[r].nb_trips; i++){
     trips.push_back(i);
+    break;    //==================================================================== TAKE A LOOK AT ME PLS ================================================
   }
 
 }
