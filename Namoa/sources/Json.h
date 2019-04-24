@@ -5,7 +5,8 @@
 #include <map>
 #include <vector>
 #include <string>
-
+#include <fstream>
+#include <cctype>
 
 class JsonObject;
 class Object;
@@ -23,6 +24,14 @@ std::ostream& operator<<(std::ostream& os, Integer& obj);
 std::ostream& operator<<(std::ostream& os, String& obj);
 std::ostream& operator<<(std::ostream& os, Boolean& obj);
 
+bool issp(char c);
+std::string getNextWord(std::ifstream &stream);
+JsonObject* jsonParse(std::ifstream &stream);
+JsonObject* jsonParseFile(std::string file_path);
+
+bool isLimit(char c);
+std::string getStr(std::ifstream &stream);
+std::string getValue(std::ifstream& stream);
 
 enum JsonType {
   OBJECT,

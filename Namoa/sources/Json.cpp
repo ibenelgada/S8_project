@@ -172,7 +172,7 @@ std::string Integer::toString(){
 }
 
 std::string String::toString(){
-  return "\"" + val + "\""; 
+  return "\"" + val + "\"";
 }
 
 std::string Boolean::toString(){
@@ -180,4 +180,112 @@ std::string Boolean::toString(){
     return "true";
   else
     return "false";
+}
+
+
+bool issp(char c){
+  return std::isspace(static_cast<unsigned char>(c));
+}
+
+bool isLimit(char c){
+  return c == '{' || c == '}' || c == '[' || c == ']' || c == ':' || c == ',';
+}
+
+std::string getStr(std::ifstream &stream){
+  char c;
+  std::string s;
+
+  stream.get(c);
+  while(c != '\"'){
+    s = s + c;
+    stream.get(c);
+  }
+
+  s = s + c;
+  return s;
+}
+
+std::string getValue(std::ifstream& stream){
+  char c;
+  std::string s;
+
+  stream.get(c);
+  while(!isLimit(c) && ! issp(c)){
+    s = s + c;
+    stream.get(c);
+  }
+
+  stream.seekg(-1, stream.cur);
+
+  return s;
+}
+
+std::string getNextWord(std::ifstream &stream){
+  char c;
+  std::string s;
+  stream.get(c);
+  while (issp(c))        // loop getting single characters
+    stream.get(c);
+
+  if(isLimit(c)){
+    return std::string() + c;
+  }
+
+  if(c == '\"'){
+    return "\"" + getStr(stream);
+  }
+
+  s = s + c;
+  s = s + getValue(stream);
+
+  return s;
+
+}
+
+JsonObject* jsonParse(std::ifstream &stream){
+  std::string str;
+  std::string str_tmp;
+  JsonObject* obj_ptr;
+
+  str = getNextWord(stream);
+  if(str == "{"){
+
+    obj_ptr = new Object();
+    do{
+      str_tmp = getNextWord(stream);
+
+      if(str_tmp == "}")
+        return obj_ptr;
+      if(str_tmp == ",")
+        str_tmp = getNextWord(stream);
+
+      getNextWord(stream);    //:
+      ( (Object*)obj_ptr)->add(str_tmp.substr(1,str_tmp.size()-2), jsonParse(stream));
+
+    }while(str_tmp != "}");
+
+  }
+
+  else if( str[0] == '\"' ){
+    obj_ptr = new String(str.substr(1,str.size()-2));
+  }
+  else if( str == "false")
+    obj_ptr = new Boolean(false);
+  else if( str == "true")
+    obj_ptr = new Boolean(true);
+  else{
+    obj_ptr = new Real(std::stod(str));
+  }
+
+  return obj_ptr;
+}
+
+
+JsonObject* jsonParseFile(std::string file_path){
+
+  std::ifstream input_file;
+  input_file.open(file_path);
+
+  return jsonParse(input_file);
+
 }

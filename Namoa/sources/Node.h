@@ -16,7 +16,6 @@ class Node{
 public:
 
   long long id;
-  Position pos;
   std::vector<Arc> arcs;
 
 public:

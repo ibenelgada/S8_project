@@ -15,10 +15,9 @@ class Graph{
 
 public:
 
-  std::map<long long,Node> nodes;
+  std::map<long long, std::map<long long, Arc> > nodes;
 
 public:
-
 
   friend std::ostream& operator<<(std::ostream&, const Graph&);
 };

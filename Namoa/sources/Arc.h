@@ -14,7 +14,6 @@ class Arc{
 
 public:
 
-  int dest;
   Cost cost;
   Transport_type type;
 

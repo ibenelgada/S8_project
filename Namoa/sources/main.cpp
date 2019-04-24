@@ -8,6 +8,7 @@
 #include <climits>
 #include <fstream>
 #include <cmath>
+#include <ctime>
 #include <sstream>
 
 
@@ -114,7 +115,6 @@ void dotGraph(const map<long long,vector<long long>>& graph, const map<long long
 
 void initGraph(map<long long,vector<long long>>& graph, map<long long,Position>& nodes, string graph_file_str, string nodes_file_str, string dot_file){
 
-
   long long nb_nodes, nb_nodes_graph, id, nb_neighbours, neighbour_id;
 
   ifstream graph_file, nodes_file;
@@ -151,13 +151,43 @@ void initGraph(map<long long,vector<long long>>& graph, map<long long,Position>&
   dotGraph(graph, nodes, dot_file);
 }
 
-double getDistance(map<long long,Position> &nodes, long long nd1, long long nd2){
-  double x1 = nodes[nd1].lat;
-  double y1 = nodes[nd1].lon;
-  double x2 = nodes[nd2].lat;
-  double y2 = nodes[nd2].lon;
+double getDiff(map<long long,Position> &nodes, long long nd1, double lon2, double lat2){
+  double lon1 = nodes[nd1].lon;
+  double lat1 = nodes[nd1].lat;
 
-  return sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+  return pow(lon1-lon2,2) + pow(lat1-lat2,2);
+}
+
+long long getNearest(map<long long,Position> &nodes, double lat, double lon){
+  double d, tmp = 0;
+  long long id;
+  d = getDiff(nodes, nodes.begin()->first, lon, lat);
+  id = nodes.begin()->first;
+  map<long long, Position>::iterator it;
+  for(it = nodes.begin(); it != nodes.end(); ++it){
+
+    tmp = getDiff(nodes, it->first, lon, lat);
+    if(tmp < d){
+      d = tmp;
+      id = it->first;
+    }
+  }
+  return id;
+}
+
+double getDistance(map<long long,Position> &nodes, long long nd1, long long nd2){
+  double x1 = M_PI * nodes[nd1].lat / 180;
+  double y1 = M_PI * nodes[nd1].lon / 180;
+  double x2 = M_PI * nodes[nd2].lat / 180;
+  double y2 = M_PI * nodes[nd2].lon / 180;
+
+  double x = x2-x1;
+  double y = y2-y1;
+
+  double a = pow(sin(x/2) , 2) + cos(x1) * cos(x2)* pow(sin(y/2) , 2);
+  double c = 2 * atan2 (sqrt(a) , sqrt(1-a));
+
+  return 6371000 * c;
 
 }
 
@@ -333,14 +363,16 @@ void remove( vector<long long>& vect, long long id){
 
 }
 
-void truncate(map<long long, vector<long long>> &graph, map<long long, Position>&nodes, long long start_node, long long end_node, double eps){
-  map<long long, vector<long long>>::iterator it;
+void truncate(Graph &graph, map<long long, Position>&nodes, long long start_node, long long end_node, double eps){
+  map<long long, map<long long, Arc>>::iterator it;
+  //GRAPH
+  // id -> neighbour_id, arc
 
   long long i,j,k;
   double ij, ik, jk;
 
-  it = graph.begin();
-  while( it != graph.end()){
+  it = graph.nodes.begin();
+  while( it != graph.nodes.end()){
 
     if(it->second.size() != 2 || it->first == start_node || it->first == end_node){
       ++it;
@@ -350,20 +382,22 @@ void truncate(map<long long, vector<long long>> &graph, map<long long, Position>
     // j - i - k
 
     i = it->first;
-    j = it->second[0];
-    k = it->second[1];
+    j = it->second.begin()->first;
+    k = (it->second.begin()++)->first;
 
     ij = getDistance(nodes, i, j);
     ik = getDistance(nodes, i, k);
     jk = getDistance(nodes, j, k);
 
     if( abs( (ij+ik) - jk ) < eps){
-      remove(graph[j], i);
-      remove(graph[k], i);
-      graph[j].push_back(k);
-      graph[k].push_back(j);
 
-      it = graph.erase(it);
+      graph.nodes[j].erase(i);
+      graph.nodes[k].erase(i);
+
+      graph.nodes[j][k].cost = Cost(jk,0);
+      graph.nodes[k][j].cost = Cost(jk,0);
+
+      it = graph.nodes.erase(it);
       continue;
     }
 
@@ -383,6 +417,11 @@ vector<long long> getNodes(Label* label){
 
 string to_json(list<Label*>& labels){
 
+  if(labels.size() == 0){
+    cout << "no paths found" << endl;
+    return "{}";
+  }
+
   Object obj;
   Array itineraries;
   Object* itinerary;
@@ -394,15 +433,16 @@ string to_json(list<Label*>& labels){
   obj.add("nb_itineraries", new Integer(labels.size()));
   list<Label*>::iterator it;
   Label* label;
+
   for(it = labels.begin(); it != labels.end(); ++it){
     itinerary = new Object();
     label = *it;
     criteria = new Object();
 
-    criteria->add("distance", new Real(label->g.distance));
+    criteria->add("distance", new Integer(label->g.distance));
     criteria->add("time", new Integer(0));
     criteria->add("price", new Real(0));
-    criteria->add("height", new Integer(0));
+    criteria->add("height", new Integer(label->g.height_diff));
     criteria->add("connections", new Integer(0));
     criteria->add("co2" , new Integer(0));
     criteria->add("effort", new Integer(0));
@@ -440,24 +480,181 @@ string to_json(list<Label*>& labels){
   return obj.toString();
 }
 
+void init_graph(Graph& myGraph, map<long long,Position> & nodes){
+  ifstream graph_file, nodes_file;
+  graph_file.open("../Data/data/graph.gr");
+  nodes_file.open("../Data/data/talence_nodes.txt");
+  string s;
+  int nb_arcs;
+  graph_file >> s;
+  graph_file >> s;
+  graph_file >> s;
+  graph_file >> nb_arcs;
 
-int main(){
+  long long nd1, nd2;
+  double cost;
+  double alt;
+
+  for( int i=0; i<nb_arcs; ++i){
+    graph_file >> s;
+    graph_file >> nd1;
+    graph_file >> nd2;
+    graph_file >> cost;
+//    graph_file >> alt;
+    myGraph.nodes[nd1][nd2].cost = Cost(cost,0);
+  }
+
+  long long nb_nodes, id;
+
+  nodes_file >> nb_nodes;
+  for(long long i=0; i < nb_nodes; ++i){
+    nodes_file >> id;
+    nodes[id] = Position();
+    nodes_file >> nodes[id].lat;
+    nodes_file >> nodes[id].lon;
+    nodes_file >> nodes[id].alt;
+  }
+
+}
+
+void init_graph_complete(Graph& myGraph, map<long long,Position> & nodes, string graph_file_str, string nodes_file_str){
+
+  ifstream graph_file, nodes_file;
+  graph_file.open(graph_file_str);
+  nodes_file.open(nodes_file_str);
+
+  string s;
+  char tmp_char;
+  long long nb_nodes_left = 1;
+  long long id;
+  char initial;
+
+  long long nb_arcs_left = 1;
+
+  long long nd1, nd2;
+  double dist;
+  double h_diff;
+  double effort;
+  double time;
+  double co2;
+  double price;
+
+  while(nb_arcs_left){
+
+    graph_file >> initial;
+
+
+    if(initial == 'c'){
+      getline(graph_file, s);
+      continue;
+    }
+
+    if(initial == 'p'){
+      graph_file >> s;
+      graph_file >> nb_nodes_left >> nb_arcs_left;
+      continue;
+    }
+
+    graph_file >> nd1 >> nd2 >> tmp_char >> time >> tmp_char >> dist >> tmp_char >> co2 >> tmp_char >>  effort >> tmp_char >> h_diff >> tmp_char >> price >> tmp_char;
+
+    myGraph.nodes[nd1][nd2].cost = Cost(dist,0);
+
+    --nb_arcs_left;
+  }
+
+
+  while(nb_nodes_left){
+
+    nodes_file >> initial;
+
+    if(initial == 'c'){
+      getline(nodes_file, s);
+      continue;
+    }
+
+    if(initial == 'p'){
+      nodes_file >> s;
+      nodes_file >> s;
+      nodes_file >> s;
+      nodes_file >> nb_nodes_left;
+      continue;
+    }
+
+    if(initial == 'v'){
+      nodes_file >> id;
+      nodes[id] = Position();
+
+      nodes_file >> nodes[id].lon >> nodes[id].lat >> nodes[id].alt;
+      getline(nodes_file, s);
+      --nb_nodes_left;
+    }
+  }
+
+}
+
+
+
+int main(int argc, char* argv[]){
+
+  // string graph_file(argv[1]);
+  // string nodes_file(argv[2]);
+  // string in_file(argv[3]);
+  // string out_file(argv[4]);
+
+
+
+  string graph_file("data/graphWalk.cr");
+  string nodes_file("data/nodes.co");
+  string in_file("data/userInput.json");
+  string out_file("data/output.json");
 
   Graph myGraph;
 
   map<long long,vector<long long>> graph;
   map<long long,Position> nodes;
 
-  long long start_node = 2292387593;
-  long long end_node = 2518636193;
-//orange 272268867
-//yellow 2292387593
-//red 2518636193
-  //initGraph(graph, nodes,"data/graph.txt", "data/nodes.txt", "data/graph.dot");
-  initGraph(graph, nodes,"../Data/data/talence_graph.txt", "../Data/data/talence_nodes.txt", "data/graph.dot");
+//  init_graph(myGraph, nodes);
+  init_graph_complete(myGraph, nodes, graph_file, nodes_file);
 
-  truncate(graph, nodes, start_node, end_node, 7.3e-5);
-  dotGraph(graph, nodes, "data/graph_truncated.dot");
+  time_t init_time = time(NULL);
+
+  Object* obj = (Object*) jsonParseFile(in_file);
+
+  Real* n1 = (Real*) obj->obj["start"];
+  Real* n2 = (Real*) obj->obj["dest"];
+
+
+//   long long start_node = 2292387593; //yellow
+//   long long end_node = 272268867;    //orange
+// //  orange 272268867
+// //  yellow 2292387593
+// //  red 2518636193
+
+ long long start_node = n1->val;
+ long long end_node = n2->val;
+
+  // Object* obj = (Object*) jsonParseFile(in_file);
+  // Object* obj1 = (Object*) obj->obj["start"];
+  // Object* obj2 = (Object*) obj->obj["dest"];
+  //
+  // Real* n1 = (Real*) obj1->obj["latitude"];
+  // Real* n2 = (Real*) obj1->obj["longitude"];
+  //
+  // Real* n3 = (Real*) obj2->obj["latitude"];
+  // Real* n4 = (Real*) obj2->obj["longitude"];
+  //
+  // long long start_node = getNearest(nodes,n2->val, n1->val);
+  // long long end_node = getNearest(nodes, n4->val, n3->val);
+
+//  cout << start_node << " " << end_node << endl;
+
+  //cout << "graph size before " << myGraph.nodes.size() << endl;
+
+  //truncate(myGraph, nodes, start_node, end_node, 1);
+
+  //cout << "graph size after " << myGraph.nodes.size() << endl;
+
+//  initGraph(graph, nodes,"data/graph.txt", "data/nodes.txt", "data/graph.dot");
 
   list<Label*> closed;
   list<Label*> open;
@@ -473,13 +670,24 @@ int main(){
   Label* current_label;
   list<Label*> best_labels;
 
-
   Position tmp;
   while(!open.empty()){
     //choosing a node from open
     node_it = getNondomNode(open);
 
-    cout << closed.size() << " " << open.size() << endl;
+#ifdef SIZE
+    cout << closed.size() << " " << open.size() << " " << (*node_it)->g.distance << endl;
+#endif
+
+#ifdef DEBUG
+    cout << TAB << TAB << TAB << TAB << TAB << endl;
+    cout << " - open is:" << endl;
+    print_list(open);
+    cout << " - closed is:" << endl;
+    print_list(closed);
+    cout << " - treating "<< **node_it << endl;
+#endif
+
     //moving node from open to closed
     current_label = *node_it;
     open.erase(node_it);
@@ -489,10 +697,23 @@ int main(){
     if(current_label->node == end_node){
       //if destination reached
 
+#ifdef DEBUG
+      cout << " - destination reached." << endl;
+      cout << "best labels is:" << endl;
+      print_list(best_labels);
+#endif
+
       if(add_nondom(best_labels, current_label)){
 
         //add_nondom label to best_labels, and filter list open
         filter(open, current_label);
+
+#ifdef DEBUG
+        cout << "label added, now best labels is:" << endl;
+        print_list(best_labels);
+        cout << "open after filtring:" << endl;
+        print_list(open);
+#endif
 
         continue;
       }
@@ -501,45 +722,78 @@ int main(){
     /* Path EXPANSION */
 
     //neighbours
-    vector<long long>& neighbours = graph[current_label->node];
+//    vector<long long>& neighbours = graph[current_label->node];             //==============================================================
 
-    for(unsigned long long i = 0; i<neighbours.size(); ++i){
-      m = neighbours[i];
+      map<long long, Arc>& neighbours_arcs = myGraph.nodes[current_label->node];
+
+#ifdef DEBUG
+    cout << " - path expansion for " << neighbours_arcs.size() << " neighbours" << endl;
+#endif
+
+//    for(unsigned long long i = 0; i<neighbours.size(); ++i){
+      for(map<long long, Arc>::iterator it= neighbours_arcs.begin(); it != neighbours_arcs.end() ; ++it){
+//      m = neighbours[i];
+        m = it->first;
+
+#ifdef DEBUG
+      cout << "      -node " << m << endl;
+#endif
 
       if(produce_cycle(m, current_label)){
-        continue;
-      }
 
-      //calculate cost to m
-      Cost cost_m;
-      cost_m = current_label->g  + getCost(nodes, current_label->node, m);
-      Cost heuristic_m(0,0);
 
-      heuristic_m = getCost(nodes,m,end_node);
+#ifdef DEBUG
+        cout << "        produces cycle, passing" << endl;
+#endif
 
-      Label* new_label = new Label();
-      new_label->node = m;
-      new_label->g = cost_m;
-      new_label->h = heuristic_m;
-      new_label->prev_label = current_label;
-
-      Cost eval_m = cost_m + heuristic_m;   //F(m)
-
-      //if m is a new node
-      if(!inList(m, open) && !inList(m,closed)){
-
-        if(dominated(eval_m, best_labels)){
           continue;
         }
 
+        //calculate cost to m
+        Cost cost_m(0,0);
+  //      cost_m = current_label->g  + getCost(nodes, current_label->node, m);  //===============================================================
+        cost_m = current_label->g  + neighbours_arcs[m].cost;
+        Cost heuristic_m(0,0);
 
-        open.push_back(new_label);
+        heuristic_m = getCost(nodes,m,end_node);                              //===============================================================
 
-      }else{
+        Label* new_label = new Label();
+        new_label->node = m;
+        new_label->g = cost_m;
+        new_label->h = heuristic_m;
+        new_label->prev_label = current_label;
 
+        Cost eval_m = cost_m + heuristic_m;   //F(m)
+
+#ifdef DEBUG
+      cout << "        created " << *new_label << endl;
+#endif
+
+        //if m is a new node
+        if(!inList(m, open) && !inList(m,closed)){
+
+          if(dominated(eval_m, best_labels)){
+#ifdef DEBUG
+    cout << "        its dominated by destination" << endl;
+#endif
+            continue;
+          }
+
+
+          open.push_back(new_label);
+
+#ifdef DEBUG
+      cout << "        its a new label, added" << endl;
+#endif
+
+        }else{
         //if g_m is non-dominated by any cost vectors in G_op(m) ∪ G_cl(m)
         //(a path to m with new long longeresting cost has been found)
         if(!isNondom(open, new_label) && !isNondom(closed, new_label)){
+
+#ifdef DEBUG
+      cout << "        its dominated by better path" << endl;
+#endif
 
           continue;
         }
@@ -548,11 +802,17 @@ int main(){
         rmDominated(closed, new_label);
 
         if(dominated(eval_m, best_labels)){
-
+#ifdef DEBUG
+        cout << "        its dominated by destination" << endl;
+#endif
           continue;
         }
 
         open.push_back(new_label);
+
+#ifdef DEBUG
+        cout << "        added to open." << endl;
+#endif
 
       } //if
 
@@ -560,20 +820,29 @@ int main(){
 
   } //while
 
-  list<Label*>::iterator it = best_labels.begin();
-  //++it;
-  Label* label_ptr = *it;
+//   list<Label*>::iterator it = best_labels.begin();
+// //  ++it;
+//   Label* label_ptr = *it;
+//
+//   while(label_ptr != nullptr){
+//     cout << label_ptr->node << " -- " ;
+//     label_ptr = label_ptr -> prev_label;
+//   }
+//   cout << endl;
+//
+//   cout << best_labels.size() << endl;
 
-  while(label_ptr != nullptr){
-    cout << label_ptr->node << " -- " ;
-    label_ptr = label_ptr -> prev_label;
-  }
-  cout << endl;
+  cout << "time elapsed: " << time(NULL) - init_time << "s" << endl;
 
-  cout << best_labels.size() << endl;
+  ofstream o_file;
+  o_file.open(out_file);
 
+  o_file << to_json(best_labels) << endl;
+  o_file.close();
 
-  cout << to_json(best_labels) << endl;
+  //cout << to_json(best_labels) << endl;
+
+  //cout << best_labels.size() << endl;
 
   return 0;
 }
