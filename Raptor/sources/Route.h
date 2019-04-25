@@ -14,15 +14,15 @@ class Route{
 
 public:
 
-    int id;
-    int nb_stops;
-    int nb_trips;
-    std::vector <int> stops;
-    std::vector <int> trips;
+    long long id;
+    long long nb_stops;
+    long long nb_trips;
+    std::vector <long long> stops;
+    std::vector < std::vector<long long> > trips; //trips[t][s]
     std::vector <int> costs;
 
 public:
-    void set(int p_id, int p_nb_stops, int p_nb_trips);
+    void set(long long p_id, long long p_nb_stops, long long p_nb_trips);
 
 };
 

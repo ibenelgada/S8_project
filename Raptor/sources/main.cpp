@@ -8,7 +8,6 @@
 #include <climits>
 #include <fstream>
 #include <cmath>
-
 #include "Stop.h"
 #include "Route.h"
 #include "Network.h"
@@ -27,12 +26,33 @@ int main(){
 
     Network myNetwork("data/routes.txt", "data/pathways.txt");
 
-    vector <Route> &routes = myNetwork.routes;
-    vector <Stop> &stops = myNetwork.stops;
+    map<long long, Route> &routes = myNetwork.routes;
+    map<long long, Stop> &stops = myNetwork.stops;
 
 
-    int nb_routes = myNetwork.nb_routes();
-    int total_nb_stops = myNetwork.nb_stops();
+    long long nb_routes = myNetwork.nb_routes();
+    long long total_nb_stops = myNetwork.nb_stops();
+
+    cout << "nb_routes " << nb_routes << endl;
+    cout << "total_nb_stops " << total_nb_stops << endl;
+
+    map<long long, Route>::iterator it_test;
+    for(it_test=routes.begin(); it_test!=routes.end(); ++it_test){
+      cout << "---------------------- id_route: " << it_test->first << endl;
+      cout << "nb_stops: " << it_test->second.nb_stops << endl;
+      cout << "nb_trips: " << it_test->second.nb_trips << endl;
+      cout << "stops are:" << endl;
+      for(vector<long long>::iterator i=it_test->second.stops.begin(); i!=it_test->second.stops.end(); ++i){
+        cout << *i << " ";
+      }
+      cout << endl;
+      cout << "trips are:" << endl;
+      for(long long t=0; t<it_test->second.nb_trips; ++t)
+        for(long long p=0; p<it_test->second.nb_stops; ++p){
+          cout << it_test->second.trips[t][p] << " ";
+        }
+    }
+
 /* ----------------------------------------------------------------------------------------------------
    Algorithm implementation : RAPTOR
 */
@@ -40,9 +60,9 @@ int main(){
 
     /* DEFINING VARIABLES  */
 
-    int ps_id = 0;        //source stop
-    int pt_id = 14;       //target stop
-    unsigned int to = 0;  //departure time
+    long long ps_id = 0;        //source stop
+    long long pt_id = 14;       //target stop
+    unsigned long long to = 0;  //departure time
 
     Bags B(total_nb_stops);   //vector of nb_stops maps B(p) where B(p)
                               //is a map of bags B(p,k), round k is the key
@@ -50,26 +70,29 @@ int main(){
 
     vector <Bag> bags_star(total_nb_stops);
 
-    vector <bool> marked(total_nb_stops,false);  //vector for marking stops
+    map<long long, bool> marked;  //map for marking stops
 
 //
 //    marked could be also an empty array where stops to process are added
 //
 
-    vector <int> Q(nb_routes, -1);   //vector of routes where Q[r] = p means that
+    map<long long, long long> Q;   //map of routes where Q[r] = p means that
     //Q.reserve(total_nb_stops);     //route r should be processed starting with stop p
 
     int k = 0;                              //Round number
 
     /* Some temporary variables */
-    int p, r, pp, pi, p_pos, pi_pos;
+    long long i,p, r, pp, pi, p_pos, pi_pos;
     string tmp_s;
     bool marked_any;
     Bag Br;
     Bag::const_iterator c_it;
     Bag::iterator it;
     Label l_tmp;
-    vector<int> trips;
+    vector<long long> trips;
+    map<long long, long long>::iterator sr_it;
+    map<long long, Stop>::iterator s_it;
+    map<long long, Route>::iterator r_it;
 
     /* INITIALIZING VARIABLES */
 
@@ -93,19 +116,26 @@ int main(){
         marked_any = false;
 
         //Clear Q
-        Q.assign(nb_routes,-1);
+      //  Q.assign(nb_routes,-1);
+        Q.clear();
         cout << "Clearing Q" << endl;
 
         //Loop through marked stops only
-        for(p=0; p<myNetwork.nb_stops(); ++p){
-            if(!marked[p])
-                continue;
+      //  for(p=0; p<myNetwork.nb_stops(); ++p){
+          for(s_it=stops.begin(); s_it!=stops.end(); ++s_it){
+
+            p = s_it->first;  //stop id
+            if(marked.find(p)==marked.end() || marked[p]==false)
+              continue;
 
             //Loop through routes serving the current marked stop p
-            for(int j=0; j<myNetwork.stop_nb_routes(p); j++){
-                r = stops[p].routes[j];   //route
+            //for(long long j=0; j<myNetwork.stop_nb_routes(p); j++){
+            for(sr_it=stops[p].routes.begin(); sr_it != stops[p].routes.end(); ++sr_it){
 
-                if(Q[r] != -1){           //if route r is in Q
+              //  r = stops[p].routes[j];   //route
+                r = sr_it->first;        //route_id
+
+                if(Q.find(r)!=Q.end()){           //if route r is in Q
                     pp = Q[r];
                     //if pp comes before p in route r
                     if(myNetwork.route_pos(r,p) >= myNetwork.route_pos(r,pp))
@@ -118,17 +148,22 @@ int main(){
 
         //DISPLAY routes
         cout << "Routes (r,p) in Q are : " << endl;
-        for(int i=0; i < nb_routes; ++i){
-            if(Q[i]!= -1)
-              cout << "(" << i << "," << Q[i] << ")" << endl;
+      //  for(long long i=0; i < nb_routes; ++i){
+        for(r_it=routes.begin(); r_it!=routes.end(); ++r_it){
+          i = r_it->first;
+          if(Q.find(i)!= Q.end())
+            cout << "(" << i << "," << Q[i] << ")" << endl;
         }
         cout << endl;
 
 
         //Processing each route in Q
-        for(r=0; r<nb_routes; ++r){
-            if(Q[r] == -1)
-                continue;
+        // for(r=0; r<nb_routes; ++r){
+
+         for(r_it=routes.begin(); r_it!=routes.end(); ++r_it){
+           r = r_it->first;
+           if(Q.find(r) == Q.end())
+              continue;
 
             cout << "----------------------------------------------------------------------------------------------------processing route " << r << " starting with stop " << Q[r] << endl;
 
@@ -138,7 +173,7 @@ int main(){
             Br.clear();
 
             //foreach stop pi in r beginning with stop p
-            for(int j=p_pos; j<routes[r].nb_stops; ++j){
+            for(long long j=p_pos; j<routes[r].nb_stops; ++j){
 
                 pi = routes[r].stops[j];
                 cout << "---------------------------------------------------------------------------Stop " << pi << endl;
@@ -150,13 +185,17 @@ int main(){
                 cout << "-------------------------traversing Br labels" << endl;
                 for(it=Br.begin(); it!=Br.end(); ++it){
 
-
-
                   //--------------------------------------------------------
                 //  cin >> s;
                   Label& l_ref = *it;
 
-                  l_ref.time = routes[r].trips[l_ref.trip * routes[r].nb_stops + pi_pos];
+                //  l_ref.time = routes[r].trips[l_ref.trip * routes[r].nb_stops + pi_pos];
+
+                cout << "$$$$$$$$$$" << endl;
+                cout << l_ref.trip << endl;
+                cout << "$$$$$$$$$$" << endl;
+                  l_ref.time = routes[r].trips[l_ref.trip][pi_pos];
+
                   l_ref.price = l_ref.prev_label->price + myNetwork.getCost(r, l_ref.trip, l_ref.hop_stop, pi);
 
                   cout << l_ref << endl;
@@ -188,7 +227,7 @@ int main(){
 
                   cout << "trips is of size " << trips.size() << endl;
 
-                  for(unsigned int i=0; i<trips.size(); ++i){
+                  for(unsigned long long i=0; i<trips.size(); ++i){
                     cout << "trip " << trips[i] << ":" << endl;
                     l_tmp.fill(c_it, r, trips[i], pi);
                     if(Br.push_nondom(l_tmp))

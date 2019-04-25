@@ -9,25 +9,25 @@
 #include <vector>
 #include <climits>
 #include <fstream>
+#include <map>
 
 class Stop{
 
 public:
 
-    int id;
-    //position pos;
-    int nb_routes;
-    int nb_transfers;
-    std::vector <int> transfer_to;
-    std::vector <int> transfer_time;
-    std::vector <int> routes;
-    std::vector <int> route_pos;
+    long long id;
+
+    long long nb_routes;
+    long long nb_transfers;
+    std::vector <long long> transfer_to;
+    std::vector <long long> transfer_time;
+    std::map<long long, long long> routes;  // <route_id, position in route>
 
 public:
 
-    void set(int p_id, int p_nb_routes, int p_nb_transfers);
+    void set(long long p_id, long long p_nb_routes, long long p_nb_transfers);
 
-    void add_transfert(int to, unsigned int t);
+    void add_transfert(long long to, unsigned long long t);
 
     void add_route();
 

@@ -2,9 +2,9 @@
 #include "Label.h"
 
 Label::Label():time(0),price(0.0),hop_stop(-1),route(-1),trip(-1),prev_label(nullptr){}
-Label::Label(int time, float price):time(time),price(price),hop_stop(-1),route(-1),trip(-1),prev_label(nullptr){}
+Label::Label(long long time, double price):time(time),price(price),hop_stop(-1),route(-1),trip(-1),prev_label(nullptr){}
 
-void Label::fill(std::list<Label>::const_iterator c_it, int r, int t, int s){
+void Label::fill(std::list<Label>::const_iterator c_it, long long r, long long t, long long s){
   *this = *c_it;
   prev_label = c_it;
   trip = t;

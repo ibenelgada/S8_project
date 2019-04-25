@@ -10,37 +10,38 @@
 #include <climits>
 #include <fstream>
 #include <cmath>
+#include <map>
 
 #include "Route.h"
 #include "Stop.h"
 
 class Network{
 public:
-  std::vector <Route> routes;
-  std::vector <Stop> stops;
+  std::map<long long, Route> routes;
+  std::map<long long, Stop> stops;
 
 public:
 
   Network (const std::string& froutes, const std::string& fpaths );
   Network(std::istream& sroutes, std::istream& spaths);
 
-  int nb_routes();
+  long long nb_routes();
 
-  int nb_stops();
+  long long nb_stops();
 
-  int route_nb_stops(int r_id);
+  long long route_nb_stops(long long r_id);
 
-  int stop_nb_routes(int s_id);
+  long long  stop_nb_routes(long long s_id);
 
-  std::vector<int>& stop_routes(int s_id);
+  std::map<long long, long long>& stop_routes(long long s_id);
 
-  int route_pos(int r, int p) const;
+  long long route_pos(long long r, long long p) const;
 
-  float getCost(int r, int trip, int p1, int p2) const;
+  double getCost(long long r, long long trip, long long p1, long long p2) const;
 
-  int et(int r, int pi, unsigned int t) const;
+  long long et(long long r, long long pi, unsigned long long  t) const;
 
-  void get_trips(int r, int pi, unsigned int t_pi, std::vector<int> &trips) const;
+  void get_trips(long long r, long long pi, unsigned long long t_pi, std::vector<long long> &trips) const;
 
 private:
 

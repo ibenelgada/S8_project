@@ -16,22 +16,23 @@ std::ostream& operator<<(std::ostream&, const Label&);
 
 class Label{
 public:
-  unsigned int time;
-  float price;
+  unsigned long long time;
+  double price;
 
   // array of class type critirium ?
 
-  int hop_stop;
-  int route;
-  int trip;
+  long long hop_stop;
+  long long route;
+  long long trip;
+  
   std::list<Label>::const_iterator prev_label;
 
 public:
 
   Label();
-  Label(int time, float price);
+  Label(long long time, double price);
 
-  void fill(std::list<Label>::const_iterator c_it, int r, int t, int s);
+  void fill(std::list<Label>::const_iterator c_it, long long r, long long t, long long s);
 
   friend bool operator<(const Label&, const Label&);
   friend bool operator==(const Label&, const Label&);
