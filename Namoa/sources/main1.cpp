@@ -216,16 +216,14 @@ bool inList(long long node, list<Label*> &l){
   return false;
 }
 
-void filter(list<Label*>& open_all, map<long long, list<Label*>>& open, Label* lbp){
-
+void filter(list<Label*>& labels, Label* lbp){
     list<Label*>::iterator it;
     Label* lbp_tmp;
-    it = open_all.begin();
-    while(it != open_all.end()){
+    it = labels.begin();
+    while(it != labels.end()){
         lbp_tmp = *it;
         if(lbp->g < (lbp_tmp->g + lbp_tmp->h)){
-            it = open_all.erase(it);
-            open[lbp_tmp->node].remove(lbp_tmp);
+            it = labels.erase(it);
             continue;
         }
 
@@ -266,16 +264,13 @@ void rmDominated(list<Label*>& labels, Label* lbp){
 }
 
 bool isNondom(list<Label*>& open, list<Label*>::iterator lb_it){
-
     Label* lbp = *lb_it;
     Label lb = *lbp;
 
     for(list<Label*>::iterator it= open.begin(); it != open.end(); ++it){
       lbp = *it;
-      if(*lbp < lb){
-        //cout << lbp->node << "=====================================================" << endl;
+      if(*lbp < lb)
         return false;
-      }
     }
 
     return true;
@@ -284,13 +279,13 @@ bool isNondom(list<Label*>& open, list<Label*>::iterator lb_it){
 bool isNondom(list<Label*>& open, Label* label){
 
   list<Label*>::const_iterator it;
-   // long long m = label->node;
-   // long long n;
+  long long m = label->node;
+  long long n;
 
   for(it=open.cbegin(); it!=open.cend(); ++it){
-      // n = (*it)->node;
-      // if(n != m)
-      //   continue;
+      n = (*it)->node;
+      if(n != m)
+        continue;
       if((*it)->g < label->g)
         return false;
   }
@@ -499,7 +494,7 @@ void init_graph(Graph& myGraph, map<long long,Position> & nodes){
 
   long long nd1, nd2;
   double cost;
-//  double alt;
+  double alt;
 
   for( int i=0; i<nb_arcs; ++i){
     graph_file >> s;
@@ -599,6 +594,7 @@ void init_graph_complete(Graph& myGraph, map<long long,Position> & nodes, string
 }
 
 
+
 int main(int argc, char* argv[]){
 
   // string graph_file(argv[1]);
@@ -621,12 +617,10 @@ int main(int argc, char* argv[]){
 //  init_graph(myGraph, nodes);
   init_graph_complete(myGraph, nodes, graph_file, nodes_file);
 
-
   Object* obj = (Object*) jsonParseFile(in_file);
 
   Real* n1 = (Real*) obj->obj["start"];
   Real* n2 = (Real*) obj->obj["dest"];
-
 
 
 //   long long start_node = 2292387593; //yellow
@@ -661,25 +655,15 @@ int main(int argc, char* argv[]){
 
 //  initGraph(graph, nodes,"data/graph.txt", "data/nodes.txt", "data/graph.dot");
 
-
-
-
-//  list<Label*> closed_all;
-  list<Label*> open_all;
-
-  map<long long, list<Label*>> closed;
-  map<long long, list<Label*>> open;
-
+  list<Label*> closed;
+  list<Label*> open;
 
   Label* label_tmp;
   long long m;
 
-  int nb_labels = 0;
-
   label_tmp = new Label(start_node);
 
-  open_all.push_back(label_tmp);
-  open[start_node].push_back(label_tmp);
+  open.push_back(label_tmp);
 
   list<Label*>::iterator node_it;
   Label* current_label;
@@ -687,25 +671,22 @@ int main(int argc, char* argv[]){
 
   Position tmp;
 
-  map<long long, bool> found;
-  found[start_node] = true;
-
   chrono::microseconds ms = chrono::duration_cast< chrono::microseconds >(chrono::system_clock::now().time_since_epoch() );
   chrono::microseconds ms1;
 
-
   double max_distance = 0;
   double estimated_distance;
-  int counter(0);
 
-  Cost eval_m;
-  Label* new_label = NULL;
-  while(!open_all.empty()){
+  int nb_labels = 0;
 
+
+  while(!open.empty()){
 
     ++nb_labels;
+
     //choosing a node from open
-    node_it = getNondomNode(open_all);
+    node_it = getNondomNode(open);
+
 
     if((*node_it)->g.distance > max_distance){
       max_distance = (*node_it)->g.distance;
@@ -713,24 +694,22 @@ int main(int argc, char* argv[]){
     }
 
 #ifdef SIZE
-    cout << open_all.size() << " " << max_distance << " " << estimated_distance << " " << nb_labels <<  endl;
+    cout << open.size() << " " << max_distance << " " << estimated_distance << " " << nb_labels <<  endl;
 #endif
 
 #ifdef DEBUG
     cout << TAB << TAB << TAB << TAB << TAB << endl;
     cout << " - open is:" << endl;
-    print_list(open_all);
-   // cout << " - closed is:" << endl;
-   // print_list(closed_all);
-    cout << " - treating " << **node_it << endl;
+    print_list(open);
+    cout << " - closed is:" << endl;
+    print_list(closed);
+    cout << " - treating "<< **node_it << endl;
 #endif
 
     //moving node from open to closed
     current_label = *node_it;
-    open_all.erase(node_it);
-    open[current_label->node].remove(current_label);
-    closed[current_label->node].push_back(current_label);
-//    closed_all.push_back(current_label);
+    open.erase(node_it);
+    closed.push_back(current_label);
 
     //processing path (node - Label)
     if(current_label->node == end_node){
@@ -745,13 +724,13 @@ int main(int argc, char* argv[]){
       if(add_nondom(best_labels, current_label)){
 
         //add_nondom label to best_labels, and filter list open
-        filter(open_all, open, current_label);
+        filter(open, current_label);
 
 #ifdef DEBUG
         cout << "label added, now best labels is:" << endl;
         print_list(best_labels);
         cout << "open after filtring:" << endl;
-        print_list(open_all);
+        print_list(open);
 #endif
 
         continue;
@@ -773,7 +752,7 @@ int main(int argc, char* argv[]){
       for(map<long long, Arc>::iterator it= neighbours_arcs.begin(); it != neighbours_arcs.end() ; ++it){
 //      m = neighbours[i];
         m = it->first;
-        found[m] = true;
+
 #ifdef DEBUG
       cout << "      -node " << m << endl;
 #endif
@@ -790,29 +769,26 @@ int main(int argc, char* argv[]){
 
         //calculate cost to m
         Cost cost_m(0,0);
-        Cost heuristic_m(0,0);
   //      cost_m = current_label->g  + getCost(nodes, current_label->node, m);  //===============================================================
         cost_m = current_label->g  + neighbours_arcs[m].cost;
+        Cost heuristic_m(0,0);
 
+        heuristic_m = getCost(nodes,m,end_node);                              //===============================================================
 
-//        heuristic_m.distance*=2;
+        Label* new_label = new Label();
+        new_label->node = m;
+        new_label->g = cost_m;
+        new_label->h = heuristic_m;
+        new_label->prev_label = current_label;
 
-
-
-
+        Cost eval_m = cost_m + heuristic_m;   //F(m)
 
 #ifdef DEBUG
       cout << "        created " << *new_label << endl;
 #endif
 
         //if m is a new node
-//        if(!inList(m, open_all) && !inList(m,closed_all)){
-//        if(!inList(m, open_all) && !inList(m,closed_all)){
-//        if(found.find(m) == found.end()){
-         if( (open.find(m) == open.end() || open.find(m)->second.empty() ) && (closed.find(m) == closed.end() || closed.find(m)->second.empty() )) {
-
-            heuristic_m = getCost(nodes,m,end_node);                              //===============================================================
-            eval_m = cost_m + heuristic_m;   //F(m)
+        if(!inList(m, open) && !inList(m,closed)){
 
           if(dominated(eval_m, best_labels)){
 #ifdef DEBUG
@@ -822,14 +798,7 @@ int main(int argc, char* argv[]){
           }
 
 
-          new_label = new Label();
-          new_label->node = m;
-          new_label->g = cost_m;
-          new_label->h = heuristic_m;
-          new_label->prev_label = current_label;
-
-          open_all.push_back(new_label);
-          open[m].push_back(new_label);
+          open.push_back(new_label);
 
 #ifdef DEBUG
       cout << "        its a new label, added" << endl;
@@ -838,13 +807,7 @@ int main(int argc, char* argv[]){
         }else{
         //if g_m is non-dominated by any cost vectors in G_op(m) ∪ G_cl(m)
         //(a path to m with new long longeresting cost has been found)
-
-        new_label = new Label();
-        new_label->node = m;
-        new_label->g = cost_m;
-        new_label->prev_label = current_label;
-
-        if(!isNondom(open[m], new_label) || !isNondom(closed[m], new_label)){
+        if(!isNondom(open, new_label) || !isNondom(closed, new_label)){
 
 #ifdef DEBUG
       cout << "        its dominated by better path" << endl;
@@ -853,14 +816,8 @@ int main(int argc, char* argv[]){
           continue;
         }
 
-        heuristic_m = getCost(nodes,m,end_node);                              //===============================================================
-        eval_m = cost_m + heuristic_m;   //F(m)
-        new_label->h = heuristic_m;
-
-        rmDominated(open_all, new_label);
-        rmDominated(open[m], new_label);
-        rmDominated(closed[m], new_label);
-//        rmDominated(closed_all, new_label);
+        rmDominated(open, new_label);
+        rmDominated(closed, new_label);
 
         if(dominated(eval_m, best_labels)){
 #ifdef DEBUG
@@ -869,8 +826,7 @@ int main(int argc, char* argv[]){
           continue;
         }
 
-        open_all.push_back(new_label);
-        open[m].push_back(new_label);
+        open.push_back(new_label);
 
 #ifdef DEBUG
         cout << "        added to open." << endl;
@@ -894,12 +850,9 @@ int main(int argc, char* argv[]){
 //
 //   cout << best_labels.size() << endl;
 
-//  cout << "time elapsed: " << time(NULL) - init_time << "s" << endl;
-
   ms1 = chrono::duration_cast< chrono::milliseconds >(chrono::system_clock::now().time_since_epoch() );
 
   cout << "time elapsed " << (ms1.count() - ms.count()) / 1000000.0 << "s" << endl;
-
 
   ofstream o_file;
   o_file.open(out_file);
@@ -910,6 +863,6 @@ int main(int argc, char* argv[]){
   //cout << to_json(best_labels) << endl;
 
   //cout << best_labels.size() << endl;
-//  cout << counter << endl;
+
   return 0;
 }
