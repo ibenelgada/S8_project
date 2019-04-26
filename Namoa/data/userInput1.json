@@ -5,14 +5,8 @@
         "co2": false,
         "effort": false
     },
-    "start": {
-        "latitude": 44.813784931788774,
-        "longitude": -0.5776364283955502
-    },
-    "dest": {
-        "latitude": 44.80688928880615,
-        "longitude": -0.5918096498918146
-    },
+    "start": 2354648004,
+    "dest": 2389224157,
     "startTime": "23:59",
     "mode": "walk"
 }

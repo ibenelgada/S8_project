@@ -286,6 +286,8 @@ JsonObject* jsonParseFile(std::string file_path){
   std::ifstream input_file;
   input_file.open(file_path);
 
-  return jsonParse(input_file);
+  JsonObject* o = jsonParse(input_file);
+  input_file.close();
+  return o;
 
 }

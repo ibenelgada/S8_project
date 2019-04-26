@@ -19,8 +19,6 @@ public:
 
   Cost g;
 
-  Cost h;
-
   long long node;
 
   Label* prev_label;
