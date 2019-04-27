@@ -23,6 +23,16 @@
 
 #include "Json.h"
 
+using namespace std;
+using namespace chrono;
+
+bool vector_contains(const vector<long long>& v, long long val){
+  for(unsigned int i=0; i < v.size(); ++i){
+    if(v[i] == val)
+      return true;
+  }
+  return false;
+}
 
 
 double getDistance(std::map<long long,Position> &nodes, long long nd1, long long nd2){
@@ -41,9 +51,7 @@ double getDistance(std::map<long long,Position> &nodes, long long nd1, long long
   double a = pow(sin(x/2) , 2) + cos(x1) * cos(x2)* pow(sin(y/2) , 2);
   double c = 2 * atan2 (sqrt(a) , sqrt(1-a));
 
-  std::cout << 6371000 * c << std::endl;
-
-  return 6371000 * c;
+  return 6378137 * c;
 
 }
 
@@ -59,36 +67,43 @@ Cost getCost(std::map<long long,Position> &nodes, long long nd1, long long nd2){
   return g;
 }
 
-void filter(std::list<std::pair<Label*,Cost>>& open_all, std::map<long long, std::list<Label*>>& open, Label* lbp){
+void filter(list <pair <Label*, map<long long,Cost> > >& open_all, map<long long, list<Label*>>& open, Label* lbp){
 
-    std::list<std::pair<Label*,Cost>>::iterator it;
+    list <pair <Label*, map<long long,Cost> > >::iterator it;
     Label* lbp_tmp;
     it = open_all.begin();
     while(it != open_all.end()){
+
         lbp_tmp = it->first;
-        if(lbp->g < it->second){
-            it = open_all.erase(it);
-            open[lbp_tmp->node].remove(lbp_tmp);
-            continue;
+        if(lbp->g < it->second[lbp->node]){
+            it->second.erase(lbp->node);
+            if(it->second.empty()){
+              it = open_all.erase(it);
+              open[lbp_tmp->node].remove(lbp_tmp);
+              continue;
+            }
         }
 
         ++it;
     }
 }
 
-bool dominated(Cost eval, const std::list<Label*>& label_list){
+bool dominated(map<long long, Cost> &eval, map<long long, list<Label*>>& label_list){
 
-  std::list<Label*>::const_iterator it;
-  for(it = label_list.cbegin(); it!=label_list.cend(); ++it){
-    if((*it)->g < eval)
-      return true;
+  for(map<long long, list<Label*>>::iterator it = label_list.begin(); it != label_list.end(); ++it){
+      for(list<Label*>::iterator it_l = it->second.begin(); it_l != it->second.end(); ++it_l){
+        if((*it_l)->g < eval[it->first]){
+          eval.erase(it->first);
+          break;
+        }
+      }
   }
 
-  return false;
+  return eval.empty();
 }
 
-void rmDominated(std::list<std::pair<Label*,Cost>>& labels, Label* lbp){
-    std::list<std::pair<Label*,Cost>>::iterator it;
+void rmDominated(std::list<std::pair<Label*,map<long long,Cost>>>& labels, Label* lbp){
+    std::list<std::pair<Label*,map<long long,Cost>>>::iterator it;
     it = labels.begin();
     Label* lbp_tmp;
 
@@ -129,19 +144,17 @@ void rmDominated(std::list<Label*>& labels, Label* lbp){
     }
 }
 
-bool isNondom(std::list<std::pair<Label*,Cost>>& open, std::list<std::pair<Label*,Cost>>::iterator lb_it){
-
-    Cost f = lb_it->second;
-
+bool isNondom(std::list<std::pair<Label*,map<long long,Cost>>>& open_all, Cost f){
+  
     Cost f_tmp;
-
-    for(std::list<std::pair<Label*,Cost>>::iterator it= open.begin(); it != open.end(); ++it){
-      f_tmp = it->second;
-      if(f_tmp < f){
-        return false;
+    for(std::list<std::pair<Label*,map<long long,Cost>>>::iterator it = open_all.begin(); it!=open_all.end(); ++it){
+      for(map<long long, Cost>::iterator it_c = it->second.begin(); it_c != it->second.end(); ++it_c){
+        f_tmp = it_c->second;
+        if(f_tmp < f){
+          return false;
+        }
       }
     }
-
     return true;
 }
 
@@ -157,16 +170,23 @@ bool isNondom(std::list<Label*>& open, Label* label){
   return true;
 }
 
-std::list<std::pair<Label*,Cost>>::iterator getNondomNode(std::list<std::pair<Label*,Cost>>& open_all){
+std::list<std::pair<Label*,map<long long,Cost>>>::iterator getNondomNode(std::list<std::pair<Label*,map<long long,Cost>>>& open_all){
 
-  for(std::list<std::pair<Label*,Cost>>::iterator it = open_all.begin(); it!=open_all.end(); ++it){
-    if(isNondom(open_all,it))
-      return it;
+  for(std::list<std::pair<Label*,map<long long,Cost>>>::iterator it = open_all.begin(); it!=open_all.end(); ++it){
+    for(map<long long, Cost>::iterator it_c = it->second.begin(); it_c != it->second.end(); ++it_c){
+
+      if(isNondom(open_all,it_c->second)){
+        return it;
+      }
+
+    }
   }
+
   return open_all.begin();
 }
 
-bool add_nondom(std::list<Label*>& labels, Label* lbp){
+bool add_nondom(map<long long, list<Label*>>& best_labels, Label* lbp){
+  list<Label*> &labels = best_labels[lbp->node];
   std::list<Label*>::iterator it;
   Label lb,lb_tmp;
   Label* lbp_tmp;

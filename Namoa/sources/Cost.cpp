@@ -3,8 +3,8 @@
 
 
 Cost::Cost(){
-  distance = INF;
-  height_diff = INF;
+  distance = 0;
+  height_diff = 0;
 }
 
 Cost::Cost(double a, double b){

@@ -25,6 +25,7 @@
 #define ELAPSED_TIME      //uncomment to print the elapsed time of the algorithm
 
 using namespace std;
+using namespace chrono;
 
 int main(int argc, char* argv[]){
 
@@ -48,42 +49,59 @@ int main(int argc, char* argv[]){
   map<long long,Position> nodes;
 
 
-  list<pair<Label*,Cost>> open_all;
+  list <pair <Label*, map<long long,Cost> > > open_all;
   map<long long, list<Label*>> open;
   map<long long, list<Label*>> closed;
-  list<Label*> best_labels;
+
+  map<long long, list<Label*>> best_labels;
 
 
   Label* label_tmp;
 
-  list<pair<Label*,Cost>>::iterator node_it;
-  Label* current_label;
+  list<pair <Label*, map<long long, Cost> > >::iterator node_it;
+  Label* current_label = NULL;
   long long m;
-  Cost eval_m;
-  Cost cost_m(0,0);
-  Cost heuristic_m(0,0);
+  Cost cost_m;
+  map<long long, Cost> eval_m;
+  map<long long, Cost> heuristic_m;
   Label* new_label = NULL;
+  map<long long, Cost> new_eval;
 
   long long start_node, end_node;
-
+  vector<long long> dests;
+//280464616
   init_graph_complete(myGraph, nodes, graph_file, nodes_file);
 
-  get_start_end(in_file, start_node, end_node);
+//  get_start_end(in_file, start_node, end_node);
+
+  start_node = 281027751;
+
+  dests.push_back(1902405360);
+  dests.push_back(2518636235);
+  dests.push_back(288351743);
 
   label_tmp = new Label(start_node);
+  new_eval[1902405360] = getCost(nodes, start_node, 1902405360);
 
-  open_all.push_back(pair<Label*,Cost>(label_tmp,Cost(0,0)));
+  label_tmp = new Label(start_node);
+  new_eval[2518636235] = getCost(nodes, start_node, 2518636235);
+
+  label_tmp = new Label(start_node);
+  new_eval[288351743] = getCost(nodes, start_node, 288351743);
+
+
+  open_all.push_back(pair<Label*, map<long long, Cost>>(label_tmp, new_eval));
   open[start_node].push_back(label_tmp);
 
-#ifdef ELAPSED_TIME
-  chrono::microseconds ms = chrono::duration_cast< chrono::microseconds >(chrono::system_clock::now().time_since_epoch());
-  chrono::microseconds ms1;
-#endif
+  #ifdef ELAPSED_TIME
+    auto start = high_resolution_clock::now();
+  #endif
 
 int counter(0);
 
   while(!open_all.empty()){
     ++counter;
+
     //choosing a node from open
     node_it = getNondomNode(open_all);
 
@@ -93,23 +111,25 @@ int counter(0);
     open[current_label->node].remove(current_label);
     closed[current_label->node].push_back(current_label);
 
-    std::cout << (*node_it).first->node << std::endl;
-    std::cout << counter << " " << (*node_it).first->g.distance << " " << (*node_it).second.distance - (*node_it).first->g.distance  << std::endl;
+//    std::cout << (*node_it).first->node << std::endl;
+//    std::cout << counter << " " << (*node_it).first->g.distance << " " << (*node_it).second.distance - (*node_it).first->g.distance  << std::endl;
 
     // string str;
     // cin >> str;
 
     //processing path (node - Label)
-    if(current_label->node == end_node){
+//    if(current_label->node == end_node){
+      if(vector_contains(dests, current_label->node)){
       //if destination reached
 
-      if(add_nondom(best_labels, current_label)){
+        if(add_nondom(best_labels, current_label)){
 
         //add_nondom label to best_labels, and filter list open
         filter(open_all, open, current_label);
         continue;
       }
     }
+
 
     /* Path EXPANSION */
 
@@ -135,15 +155,18 @@ int counter(0);
 
          if( (open.find(m) == open.end() || open.find(m)->second.empty() ) && (closed.find(m) == closed.end() || closed.find(m)->second.empty() )) {
 
-            heuristic_m = getCost(nodes,m,end_node);
-            heuristic_m.distance*=h_factor;
-            eval_m = cost_m + heuristic_m;   //F(m)
+
+           for(unsigned int i=0; i< dests.size(); ++i){
+              heuristic_m[dests[i]] = getCost(nodes,m,dests[i]);
+              heuristic_m[dests[i]].distance*=h_factor;
+              eval_m[dests[i]] = cost_m + heuristic_m[dests[i]];   //F(m)
+            }
 
           if(dominated(eval_m, best_labels)){
             continue;
           }
 
-          open_all.push_back(pair<Label*,Cost>(new_label,eval_m));
+          open_all.push_back(pair<Label*,map<long long, Cost>>(new_label,eval_m));
           open[m].push_back(new_label);
 
         }else{
@@ -154,9 +177,11 @@ int counter(0);
           continue;
         }
 
-        heuristic_m = getCost(nodes,m,end_node);
-        heuristic_m.distance*=h_factor;
-        eval_m = cost_m + heuristic_m;   //F(m)
+        for(unsigned int i=0; i< dests.size(); ++i){
+           heuristic_m[dests[i]] = getCost(nodes,m,dests[i]);
+           heuristic_m[dests[i]].distance*=h_factor;
+           eval_m[dests[i]] = cost_m + heuristic_m[dests[i]];   //F(m)
+         }
 
         rmDominated(open_all, new_label);
         rmDominated(open[m], new_label);
@@ -166,7 +191,7 @@ int counter(0);
           continue;
         }
 
-          open_all.push_back(pair<Label*,Cost>(new_label,eval_m));
+          open_all.push_back(pair<Label*,map<long long, Cost>>(new_label,eval_m));
           open[m].push_back(new_label);
 
 
@@ -177,16 +202,20 @@ int counter(0);
   } //while
 
 
-#ifdef ELAPSED_TIME
-  ms1 = chrono::duration_cast< chrono::milliseconds >(chrono::system_clock::now().time_since_epoch() );
-  cout << "time elapsed " << (ms1.count() - ms.count()) / 1000000.0 << "s" << endl;
-#endif
-
+  #ifdef ELAPSED_TIME
+    auto end = high_resolution_clock::now();
+    std::cout << "time elapsed " << duration_cast<microseconds>(end - start).count() / 1000000.0 << "s" << std::endl;
+  #endif
 
   o_file.open(out_file);
-
-  o_file << to_json(best_labels) << endl;
+  o_file << to_json(best_labels[end_node]) << endl;
   o_file.close();
+
+  cout << best_labels.size() << endl;
+
+  // for(map<long long, list<Label*>>::iterator it = best_labels.begin(); it != best_labels.end(); ++it){
+  //   cout << it->first << " " << (*it->second.begin())->g.distance << endl;
+  // }
 
   return 0;
 }
