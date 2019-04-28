@@ -1,0 +1,12 @@
+{
+    "criterias": {
+        "price": false,
+        "connections": false,
+        "co2": false,
+        "effort": false
+    },
+    "start":  2518636235,
+    "dest": 2466467260,
+    "startTime": "23:59",
+    "mode": "walk"
+}
