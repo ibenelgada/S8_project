@@ -23,6 +23,8 @@
 #include "Json.h"
 
 
+std::string Namoa(Graph& myGraph, std::map<long long, Position>& nodes, long long start_node, long long end_node);
+
 double getDistance(std::map<long long,Position> &nodes, long long nd1, long long nd2);
 
 double getHeightDiff(std::map<long long,Position> &nodes, long long nd1, long long nd2);
