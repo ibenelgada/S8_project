@@ -4,205 +4,57 @@
 #include <iterator>
 #include <tuple>
 #include <vector>
+#include <map>
 #include <climits>
 #include <fstream>
+#include <cmath>
+#include "Stop.h"
+#include "Route.h"
+#include "Network.h"
+#include "Position.h"
+#include "Label.h"
+#include "Bag.h"
+#include "Bags.h"
+#include "RouteInfo.h"
 
 #define INF UINT_MAX
 
 using namespace std;
 
-
-
-class position{
-    double lat;
-    double lon;
-};
-
-class Stop{
-
-public:
-
-    int id;
-    position pos;
-    int nb_routes;
-    int nb_transfers;
-    vector <int> transfer_to;
-    vector <int> transfer_time;
-    vector <int> routes;
-    vector <int> route_pos;
-
-    void set(int p_id, int p_nb_routes, int p_nb_transfers){
-      id = p_id;
-      nb_routes = p_nb_routes;
-      nb_transfers = p_nb_transfers;
-    }
-
-    void add_transfert(int to, unsigned int time){
-      transfer_to.push_back(to);
-      transfer_time.push_back(time);
-    }
-
-    void add_route(){
-
-    }
-};
-
-class Route{
-
-public:
-
-    int id;
-    int nb_stops;
-    int nb_trips;
-    vector <int> stops;
-    vector <int> trips;
-
-    void set(int p_id, int p_nb_stops, int p_nb_trips){
-      id = p_id;
-      nb_stops = p_nb_stops;
-      nb_trips = p_nb_trips;
-    }
-
-};
-
-class Network{
-public:
-  vector <Route> routes;
-  vector <Stop> stops;
-
-public:
-
-  Network (const string& froutes, const string& fpaths ){
-    ifstream sroutes, spaths;
-
-    sroutes.open(froutes.c_str());
-    spaths.open(fpaths.c_str());
-
-    init(sroutes, spaths);
-
-    sroutes.close();
-    spaths.close();
-  }
-
-  Network(istream& sroutes, istream& spaths){
-    init(sroutes, spaths);
-  }
-
-  void init(istream& sroutes, istream& spaths){
-    int nb_routes, total_nb_stops;
-
-    int s_id, nb_stop_routes, nb_transfers;
-
-    unsigned int transfer_to, transfer_time;
-
-    int r_id, nb_stops, nb_trips;
-
-    int stop, time;
-
-    sroutes >> nb_routes;
-    sroutes >> total_nb_stops;
-
-    routes.resize(nb_routes);
-    stops.resize(total_nb_stops);
-
-    for(int i=0; i<total_nb_stops; i++){
-      spaths >> s_id;
-      spaths >> nb_stop_routes;
-      spaths >> nb_transfers;
-
-      stops[i].set(s_id, nb_stop_routes, nb_transfers);
-
-      for(int j=0; j<nb_transfers; j++){
-        spaths >> transfer_to;
-        spaths >> transfer_time;
-
-        stops[i].add_transfert(transfer_to, transfer_time);
-      }
-
-    }
-
-    for(int i=0; i<nb_routes; i++){
-      sroutes >> r_id;
-      sroutes >> nb_stops;
-      sroutes >> nb_trips;
-
-      routes[i].set(r_id, nb_stops, nb_trips);
-
-      for(int j=0; j<nb_stops; j++){
-        sroutes >> stop;
-        routes[i].stops.push_back(stop);
-        stops[stop].routes.push_back(routes[i].id);
-        stops[stop].route_pos.push_back(j);
-      }
-
-      for(int j=0; j<nb_trips; j++){
-        for(int k=0; k<nb_stops; k++){
-          sroutes >> time;
-          routes[i].trips.push_back(time);
-        }
-      }
-
-    }
-
-
-
-  }
-
-};
-
-void showlist(list <unsigned int> g)
-{
-    list <unsigned int> :: iterator it;
-    for(it = g.begin(); it != g.end(); ++it){
-        if(*it == INF)
-          cout << '\t' << "INF";
-        else
-          cout << '\t' << *it;
-      }
-    cout << '\n';
-}
-
-
-int route_pos(vector<Stop> stops, int s, int r){
-    /*
-    Gives the position of a stop s in a route r,
-    used to check if one stop comes before another stop
-    */
-    for(int i=0; i<stops[s].nb_routes; i++){
-        if(stops[s].routes[i] == r)
-            return stops[s].route_pos[i];
-    }
-    cout << "Route " << r << " not found in stop " << s << endl;
-    return -1;
-}
-
-int et(vector<Route> routes, vector<Stop> stops, int r, int pi, unsigned int t_pi){
-    /*
-    Returns the earliest trip that can be taken from the stop pi in the route
-    r at the departure time t_pi
-    */
-    int pi_pos = route_pos(stops, pi, r);
-    unsigned int t_arr;
-
-    for(int t=0; t<routes[r].nb_trips; t++){
-        t_arr = routes[r].trips[t*routes[r].nb_stops + pi_pos];
-        if(t_pi < t_arr)
-            return t;
-    }
-    return -1;
-}
-
-int main()
-{
-
+int main(){
 
     Network myNetwork("data/routes.txt", "data/pathways.txt");
 
-    vector <Route> routes = myNetwork.routes;
-    vector <Stop> stops = myNetwork.stops;
+    long long id_source;
+    long long id_target;
 
-    int nb_routes = routes.size();
-    int total_nb_stops = stops.size();
+
+    map<long long, Route> &routes = myNetwork.routes;
+    map<long long, Stop> &stops = myNetwork.stops;
+
+    long long nb_routes = myNetwork.nb_routes();
+    long long total_nb_stops = myNetwork.nb_stops();
+
+    cout << "nb_routes " << nb_routes << endl;
+    cout << "total_nb_stops " << total_nb_stops << endl;
+
+    // map<long long, Route>::iterator it_test;
+    // for(it_test=routes.begin(); it_test!=routes.end(); ++it_test){
+    //   cout << "---------------------- id_route: " << it_test->first << endl;
+    //   cout << "nb_stops: " << it_test->second.nb_stops << endl;
+    //   cout << "nb_trips: " << it_test->second.nb_trips << endl;
+    //   cout << "stops are:" << endl;
+    //   for(vector<long long>::iterator i=it_test->second.stops.begin(); i!=it_test->second.stops.end(); ++i){
+    //     cout << *i << " ";
+    //   }
+    //   cout << endl;
+    //   cout << "trips are:" << endl;
+    //   for(long long t=0; t<it_test->second.nb_trips; ++t)
+    //     for(long long p=0; p<it_test->second.nb_stops; ++p){
+    //       cout << it_test->second.trips[t][p] << " ";
+    //     }
+    // }
+
 /* ----------------------------------------------------------------------------------------------------
    Algorithm implementation : RAPTOR
 */
@@ -210,166 +62,196 @@ int main()
 
     /* DEFINING VARIABLES  */
 
-    int ps_id = 0;        //source stop
-    int pt_id = 14;       //target stop
-    unsigned int to = 0;  //departure time
+    long long ps_id = 0;        //source stop   //7440; //pessac/alouette
+    long long pt_id = 14; //3763; // 2945;  //merignac aeroport      //target stop
+    unsigned long long to = 0;  //departure time
 
-    list <unsigned int> t[total_nb_stops];  //array of multilabel lists
-                                            //t[i]: list of earliest arrival times at stop i
+    Bags B(total_nb_stops);   //vector of nb_stops maps B(p) where B(p)
+                              //is a map of bags B(p,k), round k is the key
+                              // usage: B(p,k)
 
-    vector <unsigned int> t_min(total_nb_stops, INF);     //array for earliest known arrival times at each stop
-                                            //used for local pruning
+    vector <Bag> bags_star(total_nb_stops);
 
-    vector<bool> marked(total_nb_stops,false);  //array for marking stops
+    map<long long, bool> marked;  //map for marking stops
 
-    vector <int> Q(nb_routes,-1);                //array of routes where Q[r] = p means that
-                                            //route r should be processed starting with stop p
+//
+//    marked could be also an empty array where stops to process are added
+//
+
+    map<long long, long long> Q;   //map of routes where Q[r] = p means that
+    //Q.reserve(total_nb_stops);     //route r should be processed starting with stop p
 
     int k = 0;                              //Round number
 
+    /* Some temporary variables */
+    long long i,p, r, pp, pi, p_pos, pi_pos;
+    string tmp_s;
+    bool marked_any;
+    Bag Br;
+    Bag::const_iterator c_it;
+    Bag::iterator it;
+    Label l_tmp;
+    vector<long long> trips;
+    map<long long, long long>::iterator sr_it;
+    map<long long, Stop>::iterator s_it;
+    map<long long, Route>::iterator r_it;
+
     /* INITIALIZING VARIABLES */
 
-    for(int i=0; i<total_nb_stops; i++){    //initialize earliest arrival times with infinity
-        t[i].push_back(INF);
-    }
+    Label l(to, 0.0);
 
-    //earliest arrival time for the source stop is set to TO (departure time)
-    t_min[ps_id] = to;
-    t[ps_id].pop_back();
-    t[ps_id].push_back(to);
+    B(ps_id,0).push_nondom(l);
+    bags_star[ps_id].push_nondom(l);
 
     //mark the source stop ps
     marked[ps_id] = true;
-
-    /* Some temporary variables */
-    int h,p,r,pp,pi,p_pos,pi_pos,trip;
-    unsigned int t_arr,p_t;
-    string tmp_s;
 
     while(true){
 
         //increment round number
         k++;
 
-        cout << endl << "------------------------------------" << endl;
+        cout << endl << "-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------" << endl;
         cout << "              ROUND " << k << endl;
-        cout << "------------------------------------" << endl << endl;
+        cout << "-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------" << endl << endl;
+
+        marked_any = false;
 
         //Clear Q
-        for(int i=0; i<nb_routes; i++)
-            Q[i] = -1;
+      //  Q.assign(nb_routes,-1);
+        Q.clear();
+        cout << "Clearing Q" << endl;
 
         //Loop through marked stops only
-        for(p=0; p<total_nb_stops; p++){
-            if(!marked[p])
-                continue;
+          for(s_it=stops.begin(); s_it!=stops.end(); ++s_it){
+
+            p = s_it->first;  //stop id
+            if(marked.find(p)==marked.end() || marked[p]==false)
+              continue;
 
             //Loop through routes serving the current marked stop p
-            for(int j=0; j<stops[p].nb_routes; j++){
-                r = stops[p].routes[j];   //route
+            for(sr_it=stops[p].routes.begin(); sr_it != stops[p].routes.end(); ++sr_it){
+                r = sr_it->first;        //route_id
 
-                if(Q[r] != -1){           //if route r is in Q
+                if(Q.find(r)!=Q.end()){           //if route r is in Q
                     pp = Q[r];
                     //if pp comes before p in route r
-                    if(route_pos(stops,p,r) >= route_pos(stops,pp,r))
+                    if(myNetwork.route_pos(r,p) >= myNetwork.route_pos(r,pp))
                         continue;
                 }
                 Q[r] = p;       //add (r,p) to Q
             }
             marked[p] = false;  //unmark p
-        }
+        }  //fill Q
 
+        //DISPLAY routes
         cout << "Routes (r,p) in Q are : " << endl;
-        for(int i=0; i < nb_routes; i++){
-            if(Q[i]!= -1)
-              cout << "(" << i << "," << Q[i] << ")" << endl;
+
+        for(r_it=routes.begin(); r_it!=routes.end(); ++r_it){
+          i = r_it->first;
+          if(Q.find(i)!= Q.end())
+            cout << "(" << i << "," << Q[i] << ")" << endl;
         }
         cout << endl;
 
-        for(int i=0; i<total_nb_stops; i++){
-            t[i].push_back(t[i].back());
-        }
 
         //Processing each route in Q
-        for(r=0; r<nb_routes; r++){
-            if(Q[r] == -1)
-                continue;
 
-            cout << "processing route " << r << " starting with stop " << Q[r] << endl;
+         for(r_it=routes.begin(); r_it!=routes.end(); ++r_it){
+           r = r_it->first;
+           if(Q.find(r) == Q.end())
+              continue;
+
+            cout << "----------------------------------------------------------------------------------------------------processing route " << r << " starting with stop " << Q[r] << endl;
 
             p = Q[r];
-            p_pos = route_pos(stops, p, r);
-            trip = -1;
-            t_arr = INF;
-            //foreach stop pi in r beginning with stop p
-            for(int j=p_pos; j<routes[r].nb_stops; j++){
-                pi = routes[r].stops[j];
-                cout << "Stop " << pi << endl;
+            p_pos = myNetwork.route_pos(r,p);
 
+            Br.clear();
+
+            //foreach stop pi in r beginning with stop p
+            for(long long j=p_pos; j<routes[r].nb_stops; ++j){
+
+                pi = routes[r].stops[j];
+                cout << "---------------------------------------------------------------------------Stop " << pi << endl;
                 pi_pos = j;
 
-                if(trip != -1){   //if the trip is defined
-                    t_arr = routes[r].trips[trip*routes[r].nb_stops + pi_pos];
-                    //improve label if possible
-                    if (t_arr < min(t_min[pi],t_min[pt_id])){
-                        t[pi].pop_back();
-                        t[pi].push_back(t_arr);
-                        t_min[pi] = t_arr;
-                        marked[pi] = true;
-                        cout << pi << " updated with arrival time "  << t[pi].back()<< endl;
-                    }
-                }
+                cout << "Br is:" << endl << Br << endl;
+                cout << "B* is:" << endl << bags_star[pi] << endl;
 
-                //ckeck if we can catch an earlier trip
-                if(trip == -1 || t[pi].back() < t_arr){
-                    trip = et(routes, stops, r, pi, t[pi].back());
-                    cout << "trip " << trip << " added"<< endl;
-                }
+                cout << "-------------------------traversing Br labels" << endl;
+                for(it=Br.begin(); it!=Br.end(); ++it){
 
-            }
-        }
+                  //--------------------------------------------------------
+                  Label& l_ref = **it;
 
-        /* FOOTPATHS */
-        //foreach marked stop p
-        for(int p=0; p<total_nb_stops; p++){
-            if(!marked[p])
-                continue;
+                  l_ref.g.time = routes[r].trips[l_ref.info->trip][pi_pos];
+                  l_ref.g.price = l_ref.prev_label->g.price + myNetwork.getCost(r, l_ref.info->trip, l_ref.info->hop_stop, pi);
 
-            //loop through  the stop's transfers
-            for(int j=0; j<stops[p].nb_transfers; j++){
-                pp = stops[p].transfer_to[j];
-                p_t = stops[p].transfer_time[j];
+                  cout << l_ref << endl;
 
-                //Consider footpath if it minimizes arrival time
-                if(t[pp].back() > t[p].back() + p_t){
-                    t[pp].pop_back();
-                    t[pp].push_back(t[p].back() + p_t);
-                    marked[pp] = true;
-                    cout << pp << " updated with footpath from " << p << " with "  << t[pp].back()<< endl;
-                }
-            }
-        }
+                  if( l_ref <= bags_star[pt_id] && bags_star[pi].push_nondom(l_ref) ){
+
+                      B(pi,k).push_nondom(l_ref);
+                      marked[pi] = true;
+                      marked_any = true;
+                      cout << "adding Label to bag and marking " << pi << endl;
+
+                  }else{
+                      cout << "Label not added" << endl;
+                  }
+                } //Br Label loop
+
+                cout << "-------------------------end of Br" << endl;
+                cout << "B* of stop " << pi << " now is:" << endl;
+                cout << bags_star[pi] << endl;
+
+                cout << "-------------------------traversing B*" << endl;
+
+                for(c_it=bags_star[pi].cbegin(); c_it!=bags_star[pi].cend(); ++c_it){
+                  cout << **c_it << endl;
+
+                  trips.clear();
+                  myNetwork.get_trips(r, pi, (*c_it)->g.time, trips);
+
+                  cout << "trips is of size " << trips.size() << endl;
+
+                  for(unsigned long long i=0; i<trips.size(); ++i){
+                    cout << "trip " << trips[i] << ":" << endl;
+
+                    l_tmp.fill(*c_it, r, trips[i], pi);
+
+                    if(Br.push_nondom(l_tmp))
+                      cout << "Label added to Br" << endl;
+                    else
+                      cout << "Label not added to Br" << endl;
+                    cout << Br << endl;
+                  } // trips
+
+                } //add B*(pi) to Br
+
+                cout << "-------------------------end of B*" << endl;
+                cout << "Br now is:" << endl;
+                cout << Br << endl;
+
+
+              } //route stops loop
+
+            } //route loop
+
 
         //If no stops are marked, end
-        for(h=0; h<total_nb_stops; h++){
-            if(marked[h])
-                break;
-        }
-
-        if(h >= total_nb_stops)
+        if(!marked_any)
             break;
 
-    }
+    } //rounds
 
     cout << endl << "------------------------------------" << endl;
     cout << "         End of algorithm"<< endl;
     cout << "------------------------------------" << endl << endl;
 
-    for(int i=0; i<total_nb_stops; i++){
-        cout << "stop " << i << '\t';
-        showlist(t[i]);
-    }
 
-    cout << "arrived at stop " << pt_id << " at " << t_min[pt_id] << endl;
+    cout << bags_star[pt_id] << endl;
+
     return 0;
 }
