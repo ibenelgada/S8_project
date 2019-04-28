@@ -83,6 +83,7 @@ void Network::get_trips(long long r, long long pi, unsigned long long t_pi, std:
 
   for(long long i=t; i< route.nb_trips; i++){
     trips.push_back(i);
+    break;
   }
 
 }
