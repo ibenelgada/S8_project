@@ -21,15 +21,15 @@ std::ostream& operator<<(std::ostream&, const Bags&);
 class Bags{
 
 private:
-  std::vector < std::map <int, Bag > > bags;
+  std::map <long long, std::map <int, Bag > > bags;
 
 public:
 
-  Bags(int nb_stops);
+  Bags();
 
-  Bag& operator()(int p, int k);
+  Bag& operator()(long long p, int k);
 
-  bool empty(int p, int k) const;
+  bool empty(long long p, int k);
 
   friend std::ostream& operator<<(std::ostream&, const Bag&);
 

@@ -2,20 +2,17 @@
 #include "Bags.h"
 
 
+using namespace std;
+Bags::Bags(){
 
-Bags::Bags(int nb_stops){
-  bags.resize(nb_stops);
 }
 
 
-Bag& Bags::operator()(int p, int k){
-  if(bags[p].find(k) == bags[p].end()){
-    bags[p][k] = Bag();
-  }
+Bag& Bags::operator()(long long p, int k){
   return bags[p][k];
 }
 
-bool Bags::empty(int p, int k) const{
+bool Bags::empty(long long p, int k) {
   return bags[p].find(k) == bags[p].end();
 }
 

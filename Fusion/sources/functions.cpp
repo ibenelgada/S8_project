@@ -28,6 +28,24 @@
 
 using namespace std;
 
+
+
+void getStops(vector<long long>& v, map<long long,Position> &nodes, map<long long, Stop>& stops, long long start_node, long long d){
+
+  map<long long, Stop>::iterator it;
+  long long stop_id;
+
+  for (it = stops.begin(); it != stops.end(); ++it) {
+    stop_id = it->first;
+
+    cout << "stop_id: " << stop_id << endl;
+    if(getDistance(nodes, stop_id, start_node) <= d)
+      v.push_back(stop_id);
+
+  }
+}
+
+
 double getDistance(std::map<long long,Position> &nodes, long long nd1, long long nd2){
 
   Position &p1 = nodes[nd1];
@@ -53,7 +71,7 @@ double getHeightDiff(std::map<long long,Position> &nodes, long long nd1, long lo
 }
 
 Cost getCost(std::map<long long,Position> &nodes, long long nd1, long long nd2){
-  Cost g(0,0);
+  Cost g;
   g.distance = getDistance(nodes, nd1, nd2);
   g.height_diff = getHeightDiff(nodes, nd1, nd2);
 
@@ -327,8 +345,9 @@ void init_graph_complete(Graph& myGraph, std::map<long long,Position> & nodes, s
     }
 
     graph_file >> nd1 >> nd2 >> tmp_char >> time >> tmp_char >> dist >> tmp_char >> co2 >> tmp_char >>  effort >> tmp_char >> h_diff >> tmp_char >> price >> tmp_char;
-
-    myGraph.nodes[nd1][nd2].cost = Cost(dist,0);
+    Cost c;
+    c.distance = dist;
+    myGraph.nodes[nd1][nd2].cost = c;
 
     --nb_arcs_left;
   }
@@ -392,13 +411,13 @@ std::list<Label*> Namoa(Graph& myGraph, std::map<long long, Position>& nodes, lo
     Label* current_label;
     long long m;
     Cost eval_m;
-    Cost cost_m(0,0);
-    Cost heuristic_m(0,0);
+    Cost cost_m;
+    Cost heuristic_m;
     Label* new_label = NULL;
 
     label_tmp = new Label(start_node);
 
-    open_all.push_back(pair<Label*,Cost>(label_tmp,Cost(0,0)));
+    open_all.push_back(pair<Label*,Cost>(label_tmp,Cost()));
     open[start_node].push_back(label_tmp);
 
   #ifdef ELAPSED_TIME
@@ -509,9 +528,4 @@ std::list<Label*> Namoa(Graph& myGraph, std::map<long long, Position>& nodes, lo
   #endif
 
     return best_labels;
-}
-
-std::string Namoa_json(std::list<Label*>& best_labels){
-
-   return to_json(best_labels);
 }

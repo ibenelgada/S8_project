@@ -1,5 +1,8 @@
 #include "Bag.h"
 
+
+using namespace std;
+
 size_t Bag::size() const{
   return bag.size();
 }
@@ -91,73 +94,19 @@ bool operator>=(const Bag& b, const Label& l){
   return l <= b;
 }
 
-bool operator<(Label* l, const Bag& b){
-  Bag::const_iterator it;
-  for(it = b.cbegin(); it != b.cend(); ++it){
-    if( **it <= *l )
-      return false;
-  }
-  return true;
-}
+bool Bag::push_nondom(Label* l){
+  Bag::iterator it = bag.begin();
 
-bool operator>(Label* l, const Bag& b){
-  Bag::const_iterator it;
-  for(it = b.cbegin(); it != b.cend(); ++it){
-    if( **it >= *l )
-      return false;
-  }
-  return true;
-}
-
-bool operator<=(Label* l, const Bag& b){
-  Bag::const_iterator it;
-  for(it = b.cbegin(); it != b.cend(); ++it){
-    if( **it < *l )
-      return false;
-  }
-  return true;
-}
-
-bool operator>=(Label* l, const Bag& b){
-  Bag::const_iterator it;
-  for(it = b.cbegin(); it != b.cend(); ++it){
-    if( **it > *l )
-      return false;
-  }
-  return true;
-}
-
-
-bool operator<(const Bag& b, Label* l){
-  return l > b;
-}
-
-bool operator>(const Bag& b, Label* l){
-  return l < b;
-}
-
-bool operator<=(const Bag& b, Label* l){
-  return l >= b;
-}
-
-bool operator>=(const Bag& b, Label* l){
-  return l <= b;
-}
-
-
-bool Bag::push_nondom(Label& l){
-  Bag::iterator it;
-  it = bag.begin();
   while(it != bag.end()){
-    if( **it < l || **it == l )
+    if( **it < *l || **it == *l )
       return false;
-    if( **it > l)
+    if( **it > *l)
       it = bag.erase(it);
     else
       ++it;
   }
   Label* label = new Label;
-  *label = l;
+  *label = *l;
   bag.push_back(label);
   return true;
 }

@@ -27,27 +27,18 @@ bool operator>(const Bag& b, const Label& l);
 bool operator<=(const Bag& b, const Label& l);
 bool operator>=(const Bag& b, const Label& l);
 
-bool operator<( Label* l, const Bag& b);
-bool operator>( Label* l, const Bag& b);
-bool operator<=( Label* l, const Bag& b);
-bool operator>=( Label* l, const Bag& b);
-
-bool operator<(const Bag& b,  Label* l);
-bool operator>(const Bag& b,  Label* l);
-bool operator<=(const Bag& b,  Label* l);
-bool operator>=(const Bag& b,  Label* l);
 
 
 class Bag{
 
-private:
+public:
   std::list <Label*> bag;
 
 public:
   typedef std::list<Label*>::iterator iterator;
   typedef std::list<Label*>::const_iterator const_iterator;
 
-  bool push_nondom(Label& l);
+  bool push_nondom(Label* l);
   size_t size() const;
   bool empty() const;
 

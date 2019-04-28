@@ -100,14 +100,13 @@ void Network::init(istream& sroutes, istream& spaths){
     sroutes >> id_route >> nb_stops >> nb_trips;
     routes[id_route].set(id_route, nb_stops, nb_trips);
 
-    cout << nb_trips << endl;
-
     routes[id_route].trips.resize(nb_trips);
 
     for(long long j=0; j<nb_stops; ++j){
       sroutes >> id_stop;
       ++n;
       stops[id_stop].id = id_stop;
+    //  cout << " " << id_stop << endl;
       stops[id_stop].routes[id_route] = j;
       routes[id_route].stops.push_back(id_stop);
     }

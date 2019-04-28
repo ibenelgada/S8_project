@@ -19,12 +19,12 @@
 #include "Arc.h"
 #include "Node.h"
 #include "Graph.h"
+#include "Stop.h"
 
 #include "Json.h"
 
-
+void getStops(std::vector<long long>& v, std::map<long long,Position> &nodes, std::map<long long, Stop>& stops, long long start_node, long long d);
 std::list<Label*> Namoa(Graph& myGraph, std::map<long long, Position>& nodes, long long start_node, long long end_node);
-std::string Namoa_json(std::list<Label*>& best_labels);
 
 double getDistance(std::map<long long,Position> &nodes, long long nd1, long long nd2);
 

@@ -23,16 +23,15 @@ public:
 
   long long node;
 
-  RouteInfo* info;
+  RouteInfo info;
 
   Label* prev_label;
 
 public:
 
   Label();
-  Label(long long n, long long time, double price);
+//  Label(long long n, long long time, double price);
   Label(long long n);
-  Label& operator=(Label &l);
   void fill(Label* c_it, long long r, long long t, long long s);
 
   friend bool operator<(const Label&, const Label&);

@@ -15,7 +15,7 @@ public:
 public:
 
   RouteInfo();
-  RouteInfo(long long r, long long t, long long s);
+//  RouteInfo(long long r, long long t, long long s);
 
   friend bool operator==(const RouteInfo& i1, const RouteInfo& i2);
   friend std::ostream& operator<<(std::ostream& os, const RouteInfo& i);
