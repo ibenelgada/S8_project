@@ -32,6 +32,7 @@ double getHeightDiff(std::map<long long,Position> &nodes, long long nd1, long lo
 Cost getCost(std::map<long long,Position> &nodes, long long nd1, long long nd2);
 
 void filter(std::list<std::pair<Label*,Cost>>& open_all, std::map<long long, std::list<Label*>>& open, Label* lbp);
+void filter(std::list<std::pair<Label*,Cost>>& open_all, Cost c);
 
 bool dominated(Cost eval, const std::list<Label*>& label_list);
 
