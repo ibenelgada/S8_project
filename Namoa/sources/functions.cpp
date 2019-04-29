@@ -77,6 +77,22 @@ void filter(std::list<std::pair<Label*,Cost>>& open_all, std::map<long long, std
     }
 }
 
+void filter(std::list<std::pair<Label*,Cost>>& open_all, Cost c){
+
+    std::list<std::pair<Label*,Cost>>::iterator it;
+    Label* lbp_tmp;
+    it = open_all.begin();
+    while(it != open_all.end()){
+        lbp_tmp = it->first;
+        if(c < it->second){
+            it = open_all.erase(it);
+            continue;
+        }
+
+        ++it;
+    }
+}
+
 bool dominated(Cost eval, const std::list<Label*>& label_list){
 
   std::list<Label*>::const_iterator it;
@@ -160,11 +176,25 @@ bool isNondom(std::list<Label*>& open, Label* label){
 
 std::list<std::pair<Label*,Cost>>::iterator getNondomNode(std::list<std::pair<Label*,Cost>>& open_all){
 
-  for(std::list<std::pair<Label*,Cost>>::iterator it = open_all.begin(); it!=open_all.end(); ++it){
-    if(isNondom(open_all,it))
-      return it;
+  std::list<std::pair<Label*,Cost>> open_copy = open_all;
+  std::list<std::pair<Label*,Cost>>::iterator it;
+
+  for(it = open_copy.begin(); it!=open_copy.end(); ++it){
+    if(isNondom(open_copy,it))
+      break;
+    filter(open_copy, it->second);
   }
-  return open_all.begin();
+
+  if(it==open_copy.end()){
+    return open_all.begin();
+  }
+
+  for(std::list<std::pair<Label*,Cost>>::iterator ito = open_all.begin(); ito!=open_all.end(); ++ito){
+    if(*it == *ito){
+      return ito;
+    }
+  }
+
 }
 
 bool add_nondom(std::list<Label*>& labels, Label* lbp){
