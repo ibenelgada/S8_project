@@ -35,10 +35,15 @@ public:
   std::list <Label*> bag;
 
 public:
+
+  Bag();
+  Bag(std::list<Label*>&);
+
   typedef std::list<Label*>::iterator iterator;
   typedef std::list<Label*>::const_iterator const_iterator;
 
   bool push_nondom(Label* l);
+  bool push_nondom(Label* l, Label*& new_l);
   size_t size() const;
   bool empty() const;
 

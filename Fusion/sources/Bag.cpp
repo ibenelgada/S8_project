@@ -3,6 +3,14 @@
 
 using namespace std;
 
+Bag::Bag(){
+
+}
+
+Bag::Bag(list<Label*>& b){
+  bag = b;
+}
+
 size_t Bag::size() const{
   return bag.size();
 }
@@ -111,6 +119,23 @@ bool Bag::push_nondom(Label* l){
   return true;
 }
 
+bool Bag::push_nondom(Label* l, Label*& new_l){
+  Bag::iterator it = bag.begin();
+
+  while(it != bag.end()){
+    if( **it < *l || **it == *l )
+      return false;
+    if( **it > *l)
+      it = bag.erase(it);
+    else
+      ++it;
+  }
+  Label* label = new Label;
+  *label = *l;
+  bag.push_back(label);
+  new_l = label;
+  return true;
+}
 
 std::ostream& operator<<(std::ostream& os, const Bag& bag){
     if(bag.bag.size() == 0){

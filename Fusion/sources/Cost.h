@@ -23,8 +23,10 @@ public:
   double distance;
   double height_diff;
 
-  unsigned long long time;
+  double time;
   double price;
+
+  int k;
 
 public:
 

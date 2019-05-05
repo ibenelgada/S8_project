@@ -9,7 +9,6 @@ bool operator==(const RouteInfo& i1, const RouteInfo& i2);
 
 class RouteInfo{
 public:
-  long long hop_stop;
   long long route;
   long long trip;
 public:

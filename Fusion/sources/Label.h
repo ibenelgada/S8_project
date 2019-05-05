@@ -32,7 +32,8 @@ public:
   Label();
 //  Label(long long n, long long time, double price);
   Label(long long n);
-  void fill(Label* c_it, long long r, long long t, long long s);
+  void fill(Label* c_it, long long r, long long t);
+  std::string to_path();
 
   friend bool operator<(const Label&, const Label&);
   friend bool operator==(const Label&, const Label&);

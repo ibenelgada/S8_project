@@ -23,7 +23,7 @@
 
 #include "Json.h"
 
-#define ELAPSED_TIME      //uncomment to print the elapsed time of the algorithm
+//#define ELAPSED_TIME      //uncomment to print the elapsed time of the algorithm
 
 
 using namespace std;
@@ -34,12 +34,11 @@ void getStops(vector<long long>& v, map<long long,Position> &nodes, map<long lon
 
   map<long long, Stop>::iterator it;
   long long stop_id;
-
+  double tmp_d;
   for (it = stops.begin(); it != stops.end(); ++it) {
     stop_id = it->first;
-
-    cout << "stop_id: " << stop_id << endl;
-    if(getDistance(nodes, stop_id, start_node) <= d)
+    tmp_d = getDistance(nodes, stop_id, start_node);
+    if(tmp_d <= d)
       v.push_back(stop_id);
 
   }
@@ -73,7 +72,8 @@ double getHeightDiff(std::map<long long,Position> &nodes, long long nd1, long lo
 Cost getCost(std::map<long long,Position> &nodes, long long nd1, long long nd2){
   Cost g;
   g.distance = getDistance(nodes, nd1, nd2);
-  g.height_diff = getHeightDiff(nodes, nd1, nd2);
+//  g.height_diff = getHeightDiff(nodes, nd1, nd2);
+  g.time = g.distance/60;
 
   return g;
 }
@@ -241,7 +241,37 @@ std::vector<long long> getNodes(Label* label){
   return v;
 }
 
-std::string to_json(std::list<Label*>& labels){
+vector<vector<Label* >> getMNodes(Label * label){
+
+    vector<vector <Label*>> mat;
+    Label* l_tmp = label;
+
+    long long route = l_tmp->info.route;
+    vector<Label*> v;
+
+    while(l_tmp != nullptr){
+      v.push_back(l_tmp);
+      l_tmp = l_tmp->prev_label;
+
+      if(l_tmp == NULL){
+        mat.push_back(v);
+        break;
+      }
+
+      if(l_tmp->info.route != route){
+        route = l_tmp->info.route;
+        v.push_back(l_tmp);
+        mat.push_back(v);
+        v.clear();
+      }
+
+    }
+
+    return mat;
+}
+
+
+std::string to_json(std::list<Label*>& labels, Network &net){
 
   if(labels.size() == 0){
     return "{}";
@@ -254,7 +284,9 @@ std::string to_json(std::list<Label*>& labels){
   Array* sections;
   Object* section;
   Array* nodes;
-  std::vector<long long> nodes_vect;
+  vector<Label*> nodes_vect;
+  vector<vector<Label*>> nodes_matrix;
+
   obj.add("nb_itineraries", new Integer(labels.size()));
   std::list<Label*>::iterator it;
   Label* label;
@@ -265,10 +297,10 @@ std::string to_json(std::list<Label*>& labels){
     criteria = new Object();
 
     criteria->add("distance", new Integer(label->g.distance));
-    criteria->add("time", new Integer(0));
+    criteria->add("time", new Integer(label->g.time));
     criteria->add("price", new Real(0));
     criteria->add("height", new Integer(label->g.height_diff));
-    criteria->add("connections", new Integer(0));
+    criteria->add("connections", new Integer(label->g.k));
     criteria->add("co2" , new Integer(0));
     criteria->add("effort", new Integer(0));
 
@@ -277,22 +309,29 @@ std::string to_json(std::list<Label*>& labels){
     sections = new Array();
 
     for(int i=0; i<1; ++i){
-      section = new Object();
-      nodes = new Array();
 
-      nodes_vect = getNodes(label);
-      for(unsigned int i=0; i < nodes_vect.size(); ++i){
-        nodes->arr.push_back(new Integer(nodes_vect[i]));
+
+      nodes_matrix.clear();
+
+      nodes_matrix = getMNodes(label);
+
+      for(unsigned int j=0; j < nodes_matrix.size(); ++j){
+        section = new Object();
+        nodes = new Array();
+        nodes_vect = nodes_matrix[j];
+        for(unsigned int i=0; i < nodes_vect.size(); ++i){
+          nodes->arr.push_back(new Integer(nodes_vect[i]->node));
+        }
+
+        section->add("nodes", nodes);
+        section->add("start", new Integer(nodes_vect.back()->g.time));
+        section->add("end", new Integer(nodes_vect.front()->g.time));
+        section->add("idTransport", new Integer(nodes_vect[0]->info.route));
+        section->add("public", new Boolean(nodes_vect.front()->info.route != -1));
+        section->add("type", new String("walking"));
+
+        sections->arr.push_back(section);
       }
-
-      section->add("nodes", nodes);
-      section->add("start", new String("17:30"));
-      section->add("end", new String("17:30"));
-      section->add("idTransport", new Integer(-1));
-      section->add("public", new Boolean(false));
-      section->add("type", new String("walking"));
-
-      sections->arr.push_back(section);
     }
 
     itinerary->add("sections", sections);
@@ -303,6 +342,19 @@ std::string to_json(std::list<Label*>& labels){
   obj.add("itineraries", &itineraries);
 
   return obj.toString();
+}
+
+
+void truncate(map<long long,Position> &nodes, list<Label*> &open_labels, long long end_node, double d){
+
+  list<Label*>::iterator it;
+  long long n;
+
+  for(it=open_labels.begin(); it!=open_labels.end(); ++it){
+    n = (*it)->node;
+    if(getDistance(nodes, n, end_node) > d)
+      it = open_labels.erase(it);
+  }
 }
 
 
@@ -347,7 +399,9 @@ void init_graph_complete(Graph& myGraph, std::map<long long,Position> & nodes, s
     graph_file >> nd1 >> nd2 >> tmp_char >> time >> tmp_char >> dist >> tmp_char >> co2 >> tmp_char >>  effort >> tmp_char >> h_diff >> tmp_char >> price >> tmp_char;
     Cost c;
     c.distance = dist;
+    c.time = time/60.0;
     myGraph.nodes[nd1][nd2].cost = c;
+
 
     --nb_arcs_left;
   }
@@ -397,12 +451,29 @@ void get_start_end(const std::string& in_file, long long& start_node, long long&
 }
 
 std::list<Label*> Namoa(Graph& myGraph, std::map<long long, Position>& nodes, long long start_node, long long end_node){
+  list<pair<Label*,Cost>> open_all;
+  Label* label_tmp = new Label(start_node);
+
+  open_all.push_back(pair<Label*,Cost>(label_tmp,Cost()));
+  return Namoa(myGraph, nodes, end_node, open_all);
+}
+
+std::list<Label*> Namoa(Graph& myGraph, std::map<long long, Position>& nodes, long long end_node, std::list<Label*>& labels){
+  list<pair<Label*,Cost>> open_all;
+  list<Label*>::iterator it;
+
+  for(it = labels.begin(); it != labels.end(); ++it){
+    open_all.push_back(pair<Label*,Cost>(*it,Cost()));
+  }
+  return Namoa(myGraph, nodes, end_node, open_all);
+}
+
+std::list<Label*> Namoa(Graph& myGraph, std::map<long long, Position>& nodes, long long end_node, list<pair<Label*,Cost>> open_all){
 
     double h_factor = 1.0;
 
 
     Label* label_tmp;
-    list<pair<Label*,Cost>> open_all;
     map<long long, list<Label*>> open;
     map<long long, list<Label*>> closed;
     list<Label*> best_labels;
@@ -415,10 +486,11 @@ std::list<Label*> Namoa(Graph& myGraph, std::map<long long, Position>& nodes, lo
     Cost heuristic_m;
     Label* new_label = NULL;
 
-    label_tmp = new Label(start_node);
+    for(node_it = open_all.begin(); node_it != open_all.end(); ++node_it){
+      node_it->second = getCost(nodes, node_it->first->node, end_node);
+      open[node_it->first->node].push_back(node_it->first);
+    }
 
-    open_all.push_back(pair<Label*,Cost>(label_tmp,Cost()));
-    open[start_node].push_back(label_tmp);
 
   #ifdef ELAPSED_TIME
     chrono::microseconds ms = chrono::duration_cast< chrono::microseconds >(chrono::system_clock::now().time_since_epoch());
@@ -432,17 +504,22 @@ std::list<Label*> Namoa(Graph& myGraph, std::map<long long, Position>& nodes, lo
       //choosing a node from open
       node_it = getNondomNode(open_all);
 
+
+
+  //    cout << counter << endl;
+  //    std::cout << (*node_it).first->node << std::endl;
+
+    //  std::cout << counter << " "  << open_all.size() << " "<< (*node_it).first->g.distance << " " << (*node_it).second.distance - (*node_it).first->g.distance  << std::endl;
+
+      // string str;
+      // cin >> str;
+
       //moving node from open to closed
       current_label = node_it->first;
       open_all.erase(node_it);
       open[current_label->node].remove(current_label);
       closed[current_label->node].push_back(current_label);
-  //    cout << counter << endl;
-  //    std::cout << (*node_it).first->node << std::endl;
-  //    std::cout << counter << " " << (*node_it).first->g.distance << " " << (*node_it).second.distance - (*node_it).first->g.distance  << std::endl;
 
-      // string str;
-      // cin >> str;
 
       //processing path (node - Label)
       if(current_label->node == end_node){

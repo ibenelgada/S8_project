@@ -39,9 +39,9 @@ public:
 
   double getCost(long long r, long long trip, long long p1, long long p2) const;
 
-  long long et(long long r, long long pi, unsigned long long  t) const;
+  long long et(long long r, long long pi, double t) const;
 
-  void get_trips(long long r, long long pi, unsigned long long t_pi, std::vector<long long> &trips) const;
+  void get_trips(long long r, long long pi, double t_pi, std::vector<long long> &trips) const;
 
 private:
 

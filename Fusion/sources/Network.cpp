@@ -51,17 +51,18 @@ long long Network::route_pos(long long r, long long p) const{
 }
 
 double Network::getCost(long long r, long long trip, long long p1, long long p2) const{
-  double price = 0.5;
+  double price = 0.5*0;
   return price * abs((double)(this->route_pos(r, p1) - this->route_pos(r, p2)));
 }
 
-long long Network::et(long long r, long long pi, unsigned long long t_pi) const{
+long long Network::et(long long r, long long pi, double t_pi) const{
   /*
   Returns the earliest trip that can be taken from the stop pi in the route
   r at the departure time t_pi
   */
+
   long long pi_pos = this->route_pos(r, pi);
-  unsigned long long t_arr;
+  double t_arr;
 
   const Route& route = routes.at(r);
 
@@ -74,8 +75,7 @@ long long Network::et(long long r, long long pi, unsigned long long t_pi) const{
   return -1;
 }
 
-void Network::get_trips(long long r, long long pi, unsigned long long t_pi, std::vector<long long> &trips) const{
-
+void Network::get_trips(long long r, long long pi, double t_pi, std::vector<long long> &trips) const{
   long long t;
   t = this->et(r, pi, t_pi);
 
@@ -85,7 +85,6 @@ void Network::get_trips(long long r, long long pi, unsigned long long t_pi, std:
     trips.push_back(i);
     break;
   }
-
 }
 
 

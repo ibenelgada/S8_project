@@ -1,6 +1,8 @@
 
 #include "Label.h"
-
+#include <vector>
+#include <string>
+#include <sstream>
 using namespace std;
 
 Label::Label():prev_label(nullptr){}
@@ -13,12 +15,11 @@ Label::Label():prev_label(nullptr){}
 //
 Label::Label(long long n):prev_label(nullptr),node(n){}
 
-void Label::fill(Label* c_it, long long r, long long t, long long s){
+void Label::fill(Label* c_it, long long r, long long t){
 
   *this = *c_it;
   prev_label = c_it;
-
-  info.hop_stop = s;
+//  g.k = c_it->g.k + 1;
   info.trip = t;
   info.route = r;
 }
@@ -48,6 +49,37 @@ void Label::fill(Label* c_it, long long r, long long t, long long s){
  }
 
  std::ostream& operator<<(std::ostream& os, const Label& lb){
-     os << "cost " << lb.g << ", trip: " << lb.info.trip << ", prev_stop: " << lb.info.hop_stop << ", route: " << lb.info.route;
+     os << "cost " << lb.g << ", trip: " << lb.info.trip << ", prev_stop: " << (lb.prev_label == NULL ? -1 : lb.prev_label->node) << ", route: " << lb.info.route;
      return os;
+ }
+
+
+ string Label::to_path(){
+   Label* l = this;
+   long long route = info.route;
+   vector<Label*> lbs;
+
+   while(l != nullptr && route == l->info.route){
+     lbs.push_back(l);
+     l = l->prev_label;
+   }
+
+
+   Label* start = lbs.back();
+   Label* end = lbs.front();
+
+   start = (start->prev_label == nullptr) ? start: start->prev_label;
+
+   stringstream ss;
+
+   if( route < 0)
+    ss << "from " << start->node << " to " << end->node << " arriving at " << end->g.time << endl;
+   else
+    ss << "route: " << end->info.route << " trip: " << end->info.trip << " from stop: " << start->node << " to stop " << end->node << " arriving at " << end->g.time << endl;
+
+
+  if(l != NULL)
+    return l->to_path() + ss.str();
+
+  return ss.str();
  }

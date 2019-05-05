@@ -47,8 +47,8 @@ int main(int argc, char* argv[]){
 
 //========================== NAMOA =============================
   // Namoa data paths
-  string graph_file("data/graphWalk.cr");
-  string nodes_file("data/nodes.co");
+  string graph_file("data/graphWalk_c.cr");
+  string nodes_file("data/nodes_c.co");
   string in_file("data/userInput.json");
   string out_file("data/output.json");
 
@@ -58,17 +58,20 @@ int main(int argc, char* argv[]){
   map<long long,Position> nodes;    //map of all nodes
 
   long long start_node, end_node;
-  std::list<Label*> best_labels;
+  Bag best_labels;
+
+  map<int, Bag> best_labels_k;
 
   // Graph structure initialisation
-  //init_graph_complete(myGraph, nodes, graph_file, nodes_file);
+  init_graph_complete(myGraph, nodes, graph_file, nodes_file);
 
   //read input file
-  //get_start_end(in_file, start_node, end_node);
+  get_start_end(in_file, start_node, end_node);
+
 
 //========================== RAPTOR =============================
   //Raptor data
-  Network myNetwork("data/routes_test.txt", "data/pathways.txt");
+  Network myNetwork("data/r.txt", "data/pathways.txt");
 
   map<long long, Route> &routes = myNetwork.routes;
   map<long long, Stop> &stops = myNetwork.stops;
@@ -92,32 +95,34 @@ int main(int argc, char* argv[]){
 //     cout << "nb_stops: " << it_test->second.nb_stops << endl;
 //     cout << "nb_trips: " << it_test->second.nb_trips << endl;
 //     cout << "stops are:" << endl;
+//
 //     for(vector<long long>::iterator i=it_test->second.stops.begin(); i!=it_test->second.stops.end(); ++i){
 //       cout << *i << " ";
 //     }
 //     cout << endl;
 //     cout << "trips are:" << endl;
-//     for(long long t=0; t<it_test->second.nb_trips; ++t)
+//     for(long long t=0; t<it_test->second.nb_trips; ++t){
 //       for(long long p=0; p<it_test->second.nb_stops; ++p){
 //         cout << it_test->second.trips[t][p] << " ";
 //       }
+//       cout << endl;
+//     }
+//     cout << endl;
 // }
-
 
 /* ----------------------------------------------------------------------------------------------------
    Algorithm implementation
  ------------------------------------------------------------------ */
+  list<Label*> list_tmp = Namoa(myGraph, nodes, start_node, end_node);
+//
+  best_labels = Bag(list_tmp);
+  best_labels_k[0] = best_labels;
 
-  // best_labels = Namoa(myGraph, nodes, start_node, end_node);
-  //
-  // string result = to_json(best_labels);
-  // o_file.open(out_file);
-  // o_file <<  result << endl;
-  // o_file.close();
+ long long distance = 200;
+ vector<long long> source_stops;
+ getStops(source_stops, nodes, stops, start_node, distance);
 
-//  long long distance = 10000;
-//  vector<long long> source_stops;
-//  getStops(source_stops, nodes, stops, start_node, distance);
+ cout << "found " << source_stops.size() << " stops nearby"<< endl;
 
 
   // cout << "============ source_stops ============" << endl;
@@ -127,10 +132,9 @@ int main(int argc, char* argv[]){
   // cout << endl;
 
   /* DEFINING VARIABLES  */
-
-  long long ps_id = 1936886757;
-  long long pt_id = 365596520;
-  unsigned long long to = 0;  //departure time
+  //
+  // long long pt_id = 365596520;
+  // unsigned long long to = 0;  //departure time
 
 
 
@@ -164,17 +168,26 @@ int main(int argc, char* argv[]){
   map<long long, Stop>::iterator s_it;
   map<long long, Route>::iterator r_it;
 
+  list<Label*> open_labels;
+  Bag bag_tmp;
   /* INITIALIZING VARIABLES */
 
-  Label l;
-  l.node = ps_id;
-  l.g.time = to;
-  l.g.distance = 0.0;
-  B(ps_id,0).push_nondom(&l);
-  bags_star[ps_id].push_nondom(&l);
+  for(unsigned int i=0; i < source_stops.size(); ++i){
+    B(source_stops[i], 0).bag = Namoa(myGraph, nodes, start_node, source_stops[i]);
+    bags_star[source_stops[i]] = B(source_stops[i], 0);
+    marked[source_stops[i]] = true;
+    cout << source_stops[i] << " marked" << endl;
+  }
+
+  // Label l;
+  // l.node = ps_id;
+  // l.g.time = to;
+  // l.g.distance = 0.0;
+  // B(ps_id,0).push_nondom(&l);
+  // bags_star[ps_id].push_nondom(&l);
 
   //mark the source stop ps
-  marked[ps_id] = true;
+//  marked[ps_id] = true;
 
   while(true){
 
@@ -256,11 +269,11 @@ int main(int argc, char* argv[]){
                 Label& l_ref = **it;
 
                 l_ref.g.time = routes[r].trips[l_ref.info.trip][pi_pos];
-                l_ref.g.price = l_ref.prev_label->g.price + myNetwork.getCost(r, l_ref.info.trip, l_ref.info.hop_stop, pi);
-
+                l_ref.g.price = l_ref.prev_label->g.price + myNetwork.getCost(r, l_ref.info.trip, l_ref.prev_label->node, pi);
+                l_ref.node = pi;
                 cout << l_ref << endl;
 
-                if( l_ref <= bags_star[pt_id] && bags_star[pi].push_nondom(&l_ref) ){
+                if( l_ref <= Bag(best_labels) && bags_star[pi].push_nondom(&l_ref) ){
 
                     B(pi,k).push_nondom(&l_ref);
                     marked[pi] = true;
@@ -287,15 +300,25 @@ int main(int argc, char* argv[]){
                 cout << "trips is of size " << trips.size() << endl;
 
                 for(unsigned long long i=0; i<trips.size(); ++i){
+
                   cout << "trip " << trips[i] << ":" << endl;
 
-                  l_tmp.fill(*c_it, r, trips[i], pi);
+                  if(trips[i] < 0){
+                    cout << "Label not added to Br" << endl;
+                    break;
+                  }
 
-                  if(Br.push_nondom(&l_tmp))
+                  l_tmp.fill(*c_it, r, trips[i]);
+                  cout << "calculated label is:" << endl;
+                  cout << l_tmp << endl;
+                  Label* label_k;
+
+                  if(Br.push_nondom(&l_tmp, label_k)){
+                    ++label_k->g.k;
                     cout << "Label added to Br" << endl;
+                  }
                   else
                     cout << "Label not added to Br" << endl;
-                  cout << Br << endl;
                 } // trips
 
               } //add B*(pi) to Br
@@ -305,14 +328,54 @@ int main(int argc, char* argv[]){
               cout << Br << endl;
 
 
+
+
             } //route stops loop
 
           } //route loop
 
+          open_labels.clear();
 
-      //If no stops are marked, end
-      if(!marked_any)
-          break;
+          //If no stops are marked, end
+          if(!marked_any)
+            break;
+
+          for(s_it=stops.begin(); s_it!=stops.end(); ++s_it){
+
+            p = s_it->first;  //stop id
+              if(marked.find(p) == marked.end() || marked[p] == false)
+                continue;
+
+            for(it = B(p,k).begin(); it != B(p,k).end(); ++it){
+              open_labels.push_back(*it);
+            }
+
+          }
+
+          truncate(nodes, open_labels, end_node, 1000);
+
+          cout << "----------------------------------------------------------------------------------------------------Calculating path to dest from " << open_labels.size() << " stops"<< endl;
+
+
+          list_tmp = Namoa(myGraph, nodes, end_node, open_labels);
+
+
+          bag_tmp = Bag(list_tmp);
+
+          cout << "-------------------------paths found:" << endl;
+          cout << bag_tmp;
+          cout << "-------------------------adding paths" << endl;
+          cout << "best labels before" << endl;
+          cout << best_labels;
+
+          for(it = bag_tmp.begin(); it != bag_tmp.end(); ++it){
+            cout << **it << endl;
+            if(best_labels.push_nondom(*it))
+              cout << "Label added" << endl;
+          }
+
+          cout << "best labels after" << endl;
+          cout << best_labels;
 
   } //rounds
 
@@ -321,7 +384,18 @@ int main(int argc, char* argv[]){
   cout << "------------------------------------" << endl << endl;
 
 
-  cout << bags_star[pt_id] << endl;
+  cout << best_labels << endl;
+
+  for(it = best_labels.begin(); it!=best_labels.end(); ++it){
+    cout << (*it)->to_path() << endl;
+  }
+
+
+    string result;
+    result = to_json(best_labels.bag);
+    o_file.open(out_file);
+    o_file <<  result << endl;
+    o_file.close();
 
     return 0;
 }

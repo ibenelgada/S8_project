@@ -23,8 +23,12 @@
 
 #include "Json.h"
 
+void truncate(std::map<long long,Position> &nodes, std::list<Label*> &open_labels, long long end_node, double d);
 void getStops(std::vector<long long>& v, std::map<long long,Position> &nodes, std::map<long long, Stop>& stops, long long start_node, long long d);
 std::list<Label*> Namoa(Graph& myGraph, std::map<long long, Position>& nodes, long long start_node, long long end_node);
+std::list<Label*> Namoa(Graph& myGraph, std::map<long long, Position>& nodes, long long start_node, long long end_node);
+std::list<Label*> Namoa(Graph& myGraph, std::map<long long, Position>& nodes, long long end_node, std::list<std::pair<Label*,Cost>> open_all);
+std::list<Label*> Namoa(Graph& myGraph, std::map<long long, Position>& nodes, long long end_node, std::list<Label*>& labels);
 
 double getDistance(std::map<long long,Position> &nodes, long long nd1, long long nd2);
 
@@ -51,7 +55,7 @@ bool produce_cycle(long long m, Label* current_label);
 void remove( std::vector<long long>& vect, long long id);
 
 std::vector<long long> getNodes(Label* label);
-
+std::vector<std::vector<Label*>> getMNodes(Label * label);
 std::string to_json(std::list<Label*>& labels);
 
 void init_graph_complete(Graph& myGraph, std::map<long long,Position> & nodes, std::string graph_file_str, std::string nodes_file_str);
